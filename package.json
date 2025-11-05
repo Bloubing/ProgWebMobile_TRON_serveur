@@ -1,0 +1,24 @@
+{
+  "name": "progwebmobile_tron_serveur",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bloubing/ProgWebMobile_TRON_serveur.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Bloubing/ProgWebMobile_TRON_serveur/issues"
+  },
+  "homepage": "https://github.com/Bloubing/ProgWebMobile_TRON_serveur#readme",
+  "dependencies": {
+    "websocket": "^1.0.35"
+  }
+}
