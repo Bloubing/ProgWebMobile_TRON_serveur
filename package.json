@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Bloubing/ProgWebMobile_TRON_serveur#readme",
   "dependencies": {
+    "mongoose": "^8.19.3",
     "websocket": "^1.0.35"
   }
 }
