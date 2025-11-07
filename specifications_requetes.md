@@ -1,112 +1,150 @@
-A traiter par le serveur:
+# Déroulé des requêtes
 
 ## Connexion utilisateur :
 
-Serveur :
+Serveur reçoit :
 
 ```
   {
-    type, //connectionPlayer
-  username,
-  password
+    type : "connectionPlayer",
+    username : String,
+    password : String,
   }
 ```
 
-Soit :
+Le serveur regarde dans la base de données :
 
-- username existe et password incorrect : on interdit, le serveur envoie :
+- username existe et password incorrect -> le serveur envoie :
 
 ```
 {
   type : "connectionResponse",
-  valid : bool
+  valid : false
 }
 ```
 
-- username existe et password correct : on autorise
-
-- username n'existe pas dans Mongo : le serveur ajoute sur Mongo un user à partir de cette requête
+- username existe et password correct -> le serveur envoie :
 
 ```
-user :
 {
-  "_id": ID,
-  "username": "john",
-  "password" : "blabla,
-  "wins": 0,
-  "losses": 0
+  type : "connectionResponse",
+  playerId : Number,
+  valid : true
 }
 ```
 
-# Lobbies
+- username n'existe pas dans la base de données -> le serveur ajoute à la base de données un joueur à partir de la requête client.
 
-- Quand le client crée un lobby, il envoie au serveur :
+Format du document Player :
 
 ```
 {
-  type,
-nbDeJoueursMax (2 à 4),
-creatorID
-nomLobby
+  id: ID,
+  username: String, // voir requête client
+  password : String, // voir requête client
+  wins: 0,
+  losses: 0,
+}
+```
+
+## Game
+
+- Quand le client crée un lobby (qui est une game dont le statut est "lobby"), il envoie au serveur :
+
+```
+{
+  type : "createGame",
+  maxPlayers : Number, // entre 2 et 4
+  creatorId : Number,
+  gameName : String,
+  status : "lobby",
 }
 ```
 
 - Quand le client clique sur un lobby, il envoie au serveur :
 
 ```
-
 {
-  type,
-username/id,
-lobbyARejoindreID,
+  type : "joinGame",
+  playerId : Number,
+  gameToJoinId : Number,
 }
+```
 
+- Si le lobby est déjà plein, le serveur informe le client en envoyant :
+
+```
+{
+  type : "joinGameResponse",
+  playerId : Number,
+  gameId : Number,
+  valid: false,
+}
+```
+
+- Si le joueur a réussi à rejoindre le lobby, le serveur informe tous les clients de l'arrivée du nouveau joueur :
+
+```
+{
+  type : "joinGameResponse",
+  newPlayerId : Number,
+  gameId : Number,
+  valid: true,
+}
 ```
 
 Quand le joueur clique sur "Ready", cela envoie au serveur:
 
 ```
 {
-  type,
-  username/id
-  lobbyARejoindreID
-  ready (booleen)
+  type : "playerReady",
+  playerId : Number,
+  gameId : Number,
+  ready : Boolean,
 }
 ```
 
-Le serveur met les joueurs sur le lobby souhaité s'il n'est pas plein.
+- Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il envoie aux clients :
 
-- Le serveur démarre lobby quand tous les clients ont envoyé Ready
+```
+{
+  type : "gameReady",
+  gameId : Number,
+}
+```
 
-## Partie en cours (lobby/partie)
+## Game en cours
 
 Client envoie au serveur :
 
 ```
 
 {
-  type,
-userId,
-gameId,
-différencesTableau,
+  type : "playerMovement",
+  playerId : Number,
+  gameId : Number,
+  playerMovement, // "up", "down", "left", "right"
 }
 
 ```
 
-Le serveur regarde s'il y a des collisions, met à jour les positions.
-
-S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie. On arrête le jeu côté serveur et on attend de
-
-Serveur envoie au client :
+Le serveur regarde s'il y a des collisions, met à jour les positions en envoyant à tous les clients à intervalle fixe :
 
 ```
-
 {
-  type,
-gameId,
-finPartie, (on peut le déduire de l'état des joueurs)
-étatsDesJoueurs (vie/mort)
-tableau avec vrai état jeu,
+  type : "updateAllPlayerMovements",
+  gameId : Number,
+  players : Array[Player]
 }
 
+// Player
+{
+  id : Number,
+  x : Number,
+  y : Number,
+  direction : String,
+  alive : Boolean
+}
 ```
+
+S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie. On arrête le jeu côté serveur.
