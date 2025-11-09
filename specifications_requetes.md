@@ -1,3 +1,12 @@
+## TODO
+
+- implémenter update player movements
+- hasher mdp pour ne pas stocker en clair
+- code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
+- json schema ?
+- refactoriser connectionResponse "valid:false"
+- gérer la déconnexion
+
 # Déroulé des requêtes
 
 ## Connexion utilisateur :
@@ -57,7 +66,25 @@ Format du document Player :
   maxPlayers : Number, // entre 2 et 4
   creatorId : Number,
   gameName : String,
-  status : "lobby",
+}
+```
+
+- Si le lobby a bien été créé, le serveur envoie :
+
+```
+{
+  type : "createGameResponse",
+  gameId : Number,
+  valid: true,
+}
+```
+
+- Sinon, en cas d'erreur (données invalides), le serveur envoie :
+
+```
+{
+  type : "createGameResponse",
+  valid: false,
 }
 ```
 
@@ -79,8 +106,11 @@ Format du document Player :
   playerId : Number,
   gameId : Number,
   valid: false,
+  reason: "Lobby/game is full"
 }
 ```
+
+- Le serveur peut envoyant des valid:false avec d'autres valeurs de reason : la game n'existe pas, le player n'existe pas, etc.
 
 - Si le joueur a réussi à rejoindre le lobby, le serveur informe tous les clients de l'arrivée du nouveau joueur :
 
@@ -88,6 +118,7 @@ Format du document Player :
 {
   type : "joinGameResponse",
   newPlayerId : Number,
+  newPlayerUsername: String,
   gameId : Number,
   valid: true,
 }
@@ -104,11 +135,23 @@ Quand le joueur clique sur "Ready", cela envoie au serveur:
 }
 ```
 
+S'il y a une erreur après cette action, le serveur envoie au client :
+
+```
+{
+  type: "playerReadyResponse",
+  playerId: Number,
+  gameId: Number,
+  valid: false,
+  reason: String,
+}
+```
+
 - Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il envoie aux clients :
 
 ```
 {
-  type : "gameReady",
+  type : "gameStart",
   gameId : Number,
 }
 ```
@@ -134,7 +177,7 @@ Le serveur regarde s'il y a des collisions, met à jour les positions en envoyan
 {
   type : "updateAllPlayerMovements",
   gameId : Number,
-  players : Array[Player]
+  players : Array[Player],
 }
 
 // Player
@@ -147,4 +190,12 @@ Le serveur regarde s'il y a des collisions, met à jour les positions en envoyan
 }
 ```
 
-S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie. On arrête le jeu côté serveur.
+S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie et envoie au client:
+
+{
+type: "endGame",
+winnerId: Number,
+valid: true,
+}
+
+On arrête le jeu côté serveur.
