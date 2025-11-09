@@ -22,13 +22,17 @@ class Game {
     this.interval = null;
   }
 
-  start() {
+  start(func, parameter) {
+    if (this.interval) {
+      // empêcher de lancer une autre intervalle si une déjà existante
+      return;
+    }
     // Change le statut de la game en "game" pour désactiver la réapparition des joueurs
     this.status = "game";
     // Lancer un intervalle de updateAllPlayerMovements
     this.interval = setInterval(() => {
-      updateAllPlayerMovements(this);
-    }, 10);
+      func(parameter);
+    }, 200);
   }
 
   stop() {
@@ -36,6 +40,10 @@ class Game {
     if (this.interval) {
       clearInterval(this.interval);
     }
+  }
+
+  getAliveCount() {
+    return this.players.filter((player) => player.alive === true).length;
   }
 
   checkAllPlayersReady() {
@@ -52,9 +60,24 @@ class Game {
     return this.players.some((player) => player.id === playerId);
   }
 
-  checkCollision(playerId) {
-    let player = this.players.find((player) => player.id === playerId);
+  getPlayer(playerId) {
+    return this.players.find((player) => player.id === playerId);
+  }
 
+  getWinner() {
+    let winners = [];
+    this.players.forEach((player) => {
+      if (player.alive) {
+        winners.push(player);
+      }
+    });
+
+    // renvoie l'unique vainqueur
+    // sinon renvoie -1 quand 0 winner ou + d'1 winner
+    return winners.length === 1 ? winners[0] : -1;
+  }
+
+  checkCollision(player) {
     // check collision hors-grille
     if (
       player.x < 0 ||
@@ -69,16 +92,6 @@ class Game {
       return true;
     }
 
-    return false;
-  }
-
-  setPlayerReady(playerId) {
-    this.players.forEach((player) => {
-      if (playerId === player.id) {
-        player.ready = true;
-        return true;
-      }
-    });
     return false;
   }
 }

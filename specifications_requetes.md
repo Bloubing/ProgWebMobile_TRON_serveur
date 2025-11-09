@@ -166,9 +166,21 @@ Client envoie au serveur :
   type : "playerMovement",
   playerId : Number,
   gameId : Number,
-  playerMovement, // "up", "down", "left", "right"
+  direction: String, // "up", "down", "left", "right"
 }
 
+```
+
+S'il y a eu une erreur, le serveur répond :
+
+```
+{
+  type : "playerMovementResponse",
+  playerId : Number,
+  gameId : Number,
+  valid: false,
+  reason: "Player or game not found",
+}
 ```
 
 Le serveur regarde s'il y a des collisions, met à jour les positions en envoyant à tous les clients à intervalle fixe :
@@ -185,7 +197,6 @@ Le serveur regarde s'il y a des collisions, met à jour les positions en envoyan
   id : Number,
   x : Number,
   y : Number,
-  direction : String,
   alive : Boolean
 }
 ```

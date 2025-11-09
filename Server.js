@@ -245,9 +245,9 @@ function handlePlayerReady(connection, data) {
     connection.send(connectionResponse);
     return;
   }
-
+  let player = game.getPlayer(data.playerId);
   // Mettre à jour statut "ready" du joueur à true dans la game
-  game.setPlayerReady(data.playerId);
+  player.ready = true;
 
   if (game.checkAllPlayersReady()) {
     // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
@@ -265,51 +265,92 @@ function handlePlayerReady(connection, data) {
       }
     });
 
-    game.start();
+    game.start(updateAllPlayerMovements, game);
   }
 }
 
-function handlePlayerMovement(connection, data) {
+async function handlePlayerMovement(connection, data) {
+  let connectionResponse;
   // on recup la game et le joueur
-  // update position dans la game selon direction
-  // garder en mémoire les cases
-  // check collision
-  // game.checkCollision(playerId)
-  // renvoie au client s'il est mort
+  try {
+    let game = games.get(data.gameId);
+
+    if (!game || !game.checkPlayerInGame(data.playerId)) {
+      // Serveur renvoie erreur si données invalides
+      connectionResponse = JSON.stringify({
+        type: "playerMovementResponse",
+        playerId: data.playerId,
+        gameId: data.gameId,
+        valid: false,
+        reason: "Player, game or player in game not found",
+      });
+
+      connection.send(connectionResponse);
+      return;
+    }
+
+    let player = game.getPlayer(data.playerId);
+
+    // update position dans la game selon direction
+    player.moveDirection(data.direction);
+
+    // check collision
+    if (game.checkCollision(player)) {
+      // player de la connexion actuelle est mort, on met à jour son état alive dans la game
+      player.alive = false;
+
+      // check combien de joueurs vivants
+      if (game.getAliveCount() <= 1) {
+        let winner = game.getWinner();
+        if (winner) {
+          endGame(game, winner.id);
+        } else {
+          // Pas de gagnant, égalité
+          // TODO A revoir, mettre un tableau des derniers joueurs restants avant fin du jeu
+          endGame(game, -1);
+        }
+      }
+    } else {
+      // On update la case
+      // On la remplit par l'id du joueur pour identifier par quel joueur chaque case est occupée
+      game.grid[player.x][player.y] = player.id;
+    }
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 function updateAllPlayerMovements(game) {
   let connectionResponse;
+
+  // broadcast pour envoyer état du jeu à chaque client
   game.players.forEach((player) => {
     let connection = connections.get(player.id);
 
-    connectionResponse = JSON.stringify({
-      type: "updateAllPlayerMovements",
-      gameId: game.id,
-      valid: true,
-    });
     // On vérifie si joueur toujours co et on envoie si oui
     if (connection) {
+      connectionResponse = JSON.stringify({
+        type: "updateAllPlayerMovements",
+        gameId: game.id,
+        players: game.players,
+      });
+
       connection.send(connectionResponse);
     }
   });
 }
 
-async function endGame(gameId, players, winnerId, startedAt) {
+async function endGame(game, winnerId) {
   let connectionResponse;
   // Stocke la game courante et l'id du gagnant en base de données
   await gameModel.create({
-    generatedGameId: gameId,
-    players: players,
+    generatedGameId: game.id,
+    players: game.players,
     winnerId: winnerId,
-    startedAt: startedAt,
+    startedAt: game.startedAt,
     endedAt: Date.now(),
   });
-  const game = games.get(gameId);
-  // check si la partie est toujours en cours
-  if (!game) {
-    return;
-  }
+
   // On stoppe le jeu
   game.stop();
 
@@ -329,5 +370,5 @@ async function endGame(gameId, players, winnerId, startedAt) {
   });
 
   // Enlever la game de la liste game en cours
-  games.delete(gameId);
+  games.delete(game.id);
 }
