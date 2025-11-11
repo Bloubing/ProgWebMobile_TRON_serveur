@@ -1,6 +1,4 @@
-const crypto = require("crypto");
-
-// ======== Déf Script serveur Node.js WebSocket ==========
+// ======== Script serveur Node.js WebSocket ==========
 const http = require("http");
 const WebSocketServer = require("websocket").server;
 
@@ -57,6 +55,7 @@ wsServer.on("request", function (request) {
         break;
     }
   });
+
   connection.on("close", function (reasonCode, description) {
     // Le joueur s'est déconnecté
     // Le serveur change son état à "mort"
@@ -75,6 +74,7 @@ async function handleConnectionPlayer(connection, data) {
         type: "connectionResponse",
         playerId: player._id,
         valid: false,
+        reason: "Invalid password",
       });
       connection.send(connectionResponse);
       return;
@@ -91,7 +91,7 @@ async function handleConnectionPlayer(connection, data) {
       });
     }
 
-    // On stocke la nouvelle connexion
+    // On stocke la nouvelle connexion dans la liste de connexions
     connections.set(player._id, connection);
 
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
@@ -120,6 +120,7 @@ function handleCreateGame(connection, data) {
     connectionResponse = JSON.stringify({
       type: "createGameResponse",
       valid: false,
+      reason: "Missing or invalid data",
     });
 
     connection.send(connectionResponse);
@@ -127,6 +128,7 @@ function handleCreateGame(connection, data) {
   }
 
   // Le serveur crée un objet Game qui contient liste des joueurs
+  // Ajoute par défaut le joueur créateur à la liste des joueurs
   const game = new Game(data.creatorId, data.gameName, data.maxPlayers);
 
   // On ajoute la game à la liste des games en cours
@@ -249,6 +251,16 @@ function handlePlayerReady(connection, data) {
   // Mettre à jour statut "ready" du joueur à true dans la game
   player.ready = true;
 
+  // Le serveur confirme au client que le statut ready a bien été changé
+  connectionResponse = JSON.stringify({
+    type: "playerReadyResponse",
+    playerId: data.playerId,
+    gameId: data.gameId,
+    valid: true,
+  });
+
+  connection.send(connectionResponse);
+
   if (game.checkAllPlayersReady()) {
     // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
     // Cela déclenche la fonction startGame()
@@ -265,13 +277,14 @@ function handlePlayerReady(connection, data) {
       }
     });
 
+    // Démarrage de la game
     game.start(updateAllPlayerMovements, game);
   }
 }
 
 async function handlePlayerMovement(connection, data) {
   let connectionResponse;
-  // on recup la game et le joueur
+  // On récupère la game et le joueur
   try {
     let game = games.get(data.gameId);
 
@@ -296,6 +309,7 @@ async function handlePlayerMovement(connection, data) {
 
     // check collision
     if (game.checkCollision(player)) {
+      // il y a eu une collision avec player
       // player de la connexion actuelle est mort, on met à jour son état alive dans la game
       player.alive = false;
 

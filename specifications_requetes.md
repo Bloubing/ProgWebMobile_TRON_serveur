@@ -1,8 +1,16 @@
+## remarques
+
+- sur l'interface, enlever le fade des trails car + dur a implementer et cest pas tron
+- coté client, faire les websockets avec le format des requetes demandés
+
 ## TODO
 
-- implémenter update player movements
+- tester
+- update wins/losses de chaque joueur a la fin de partie
+- ajouter countdown serveur dans game.start() : 3,2,1
+- mettre au propre le fichier markdown, et les requetes/reponses (metre des valid:true là ou j'ai oublié)
 - hasher mdp pour ne pas stocker en clair
-- code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
+- implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 - json schema ?
 - refactoriser connectionResponse "valid:false"
 - gérer la déconnexion
@@ -28,7 +36,9 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
+  playerId : Number,
   valid : false
+  reason : "Invalid password"
 }
 ```
 
@@ -56,7 +66,9 @@ Format du document Player :
 }
 ```
 
-## Game
+## Avant la Game
+
+### Création de lobby
 
 - Quand le client crée un lobby (qui est une game dont le statut est "lobby"), il envoie au serveur :
 
@@ -85,8 +97,11 @@ Format du document Player :
 {
   type : "createGameResponse",
   valid: false,
+  reason: "Missing or invalid data"
 }
 ```
+
+### Rejoindre un lobby
 
 - Quand le client clique sur un lobby, il envoie au serveur :
 
@@ -124,7 +139,9 @@ Format du document Player :
 }
 ```
 
-Quand le joueur clique sur "Ready", cela envoie au serveur:
+### Cliquer sur "Ready"
+
+- Quand le joueur clique sur "Ready", cela envoie au serveur:
 
 ```
 {
@@ -135,7 +152,7 @@ Quand le joueur clique sur "Ready", cela envoie au serveur:
 }
 ```
 
-S'il y a une erreur après cette action, le serveur envoie au client :
+- S'il y a une erreur après cette action, le serveur envoie au client :
 
 ```
 {
@@ -144,6 +161,17 @@ S'il y a une erreur après cette action, le serveur envoie au client :
   gameId: Number,
   valid: false,
   reason: String,
+}
+```
+
+- S'il n'y a pas d'erreur et que le statut "Ready" du joueur a bien été pris en compte, le serveur confirme :
+
+```
+{
+  type: "playerReadyResponse",
+  playerId: Number,
+  gameId: Number,
+  valid: true,
 }
 ```
 
@@ -179,7 +207,7 @@ S'il y a eu une erreur, le serveur répond :
   playerId : Number,
   gameId : Number,
   valid: false,
-  reason: "Player or game not found",
+  reason: String,
 }
 ```
 
@@ -197,16 +225,20 @@ Le serveur regarde s'il y a des collisions, met à jour les positions en envoyan
   id : Number,
   x : Number,
   y : Number,
-  alive : Boolean
+  alive : Boolean,
+  ready : Boolean;
+  currentDirection : String,
 }
 ```
 
 S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie et envoie au client:
 
+```
 {
 type: "endGame",
 winnerId: Number,
 valid: true,
 }
+```
 
 On arrête le jeu côté serveur.

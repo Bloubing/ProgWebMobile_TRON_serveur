@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const Player = require("./Player");
 
 // Structure de la game pendant une partie
