@@ -4,6 +4,7 @@ const WebSocketServer = require("websocket").server;
 
 const server = http.createServer();
 server.listen(9898);
+
 const wsServer = new WebSocketServer({
   httpServer: server,
 });
@@ -68,17 +69,15 @@ wsServer.on("request", function (request) {
 async function handleConnectionPlayer(connection, data) {
   try {
     let player = await playerModel.findOne({ username: data.username });
-    let connectionResponse;
 
     // Joueur existe mais mot de passe incorrect
     if (player && !(await bcrypt.compare(data.password, player.password))) {
-      connectionResponse = JSON.stringify({
+      sendConnection(connection, {
         type: "connectionResponse",
         playerId: player._id,
         valid: false,
         reason: "Invalid password",
       });
-      connection.send(connectionResponse);
       return;
     }
 
@@ -100,20 +99,17 @@ async function handleConnectionPlayer(connection, data) {
     connections.set(player._id, connection);
 
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "connectionResponse",
       playerId: player._id,
       valid: true,
     });
-    connection.send(connectionResponse);
   } catch (err) {
-    console.log(err);
+    console.log("Erreur dans handleConnection : " + err);
   }
 }
 
 function handleCreateGame(connection, data) {
-  let connectionResponse;
-
   // Vérifier données valides
   if (
     !data.creatorId ||
@@ -122,13 +118,11 @@ function handleCreateGame(connection, data) {
     data.maxPlayers < 2 ||
     data.maxPlayers > 4
   ) {
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "createGameResponse",
       valid: false,
       reason: "Missing or invalid data",
     });
-
-    connection.send(connectionResponse);
     return;
   }
 
@@ -139,61 +133,53 @@ function handleCreateGame(connection, data) {
   // On ajoute la game à la liste des games en cours
   games.set(game.id, game);
 
-  connectionResponse = JSON.stringify({
+  sendConnection(connection, {
     type: "createGameResponse",
     gameId: game.id,
     valid: true,
   });
-
-  connection.send(connectionResponse);
 }
 
 async function handleJoinGame(connection, data) {
-  let connectionResponse;
   // Erreur : la game demandée n'existe pas
   if (!games.has(data.gameId)) {
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "joinGameResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
       reason: "Lobby/game doesn't exist",
     });
-
-    connection.send(connectionResponse);
     return;
   }
 
   let game = games.get(data.gameId);
 
-  // vérifier si le playerId de la requête existe dans la BDD
+  // Vérifier si le playerId de la requête existe dans la BDD
   let player = await playerModel.findOne({ _id: data.playerId });
 
   if (!player) {
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "joinGameResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
       reason: "Player not found in database",
     });
-
-    connection.send(connectionResponse);
     return;
   }
   // Le serveur vérifie si le nombre de connexions < au nombre de joueurs max
   // défini de la game courante
   if (game.players.length >= game.maxPlayers) {
     // Serveur renvoie erreur au client
-    connectionResponse = JSON.stringify({
+
+    sendConnection(connection, {
       type: "joinGameResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
       reason: "Lobby/game is full",
     });
-
-    connection.send(connectionResponse);
     return;
   }
 
@@ -203,53 +189,39 @@ async function handleJoinGame(connection, data) {
   game.players.push(newPlayerInGame);
 
   // broadcast informant de l'arrivée du nouveau joueur
-  game.players.forEach((player) => {
-    let gameConnection = connections.get(player.id);
-
-    // On vérifie si joueur toujours co et on envoie si oui
-    if (gameConnection) {
-      connectionResponse = JSON.stringify({
-        type: "joinGameResponse",
-        newPlayerId: data.playerId,
-        newPlayerUsername: player.username,
-        gameId: data.gameId,
-        valid: true,
-      });
-      gameConnection.send(connectionResponse);
-    }
+  sendBroadcast(game, {
+    type: "joinGameResponse",
+    newPlayerId: data.playerId,
+    newPlayerUsername: player.username,
+    gameId: data.gameId,
+    valid: true,
   });
-
-  // Sinon, le serveur envoie un JSON qui dit qu'il est impossible de rejoindre
 }
 
 function handlePlayerReady(connection, data) {
   let connectionResponse;
   // On vérifie si données valides
   if (!data.playerId || !data.gameId) {
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "playerReadyResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
       reason: "Missing data",
     });
-
-    connection.send(connectionResponse);
     return;
   }
 
   let game = games.get(data.gameId);
 
   if (!game || !game.checkPlayerInGame(data.playerId)) {
-    connectionResponse = JSON.stringify({
+    sendConnection(connection, {
       type: "playerReadyResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
       reason: "Player not found in game",
     });
-
-    connection.send(connectionResponse);
     return;
   }
   let player = game.getPlayer(data.playerId);
@@ -257,42 +229,29 @@ function handlePlayerReady(connection, data) {
   player.ready = true;
 
   // Le serveur confirme au client que le statut ready a bien été changé
-  connectionResponse = JSON.stringify({
+  sendConnection(connection, {
     type: "playerReadyResponse",
     playerId: data.playerId,
     gameId: data.gameId,
     valid: true,
   });
 
-  connection.send(connectionResponse);
-
   if (game.checkAllPlayersReady()) {
     startCountdown(game);
   }
 }
 
-async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function startCountdown(game) {
   let count = 3;
-  let connectionResponse;
 
   // Countdown jusqu'à 3 en broadcast
   while (count >= 0) {
-    game.players.forEach((player) => {
-      const connection = connections.get(player.id);
-      if (connection) {
-        connection.send(
-          JSON.stringify({
-            type: "countdown",
-            gameId: game.id,
-            value: count,
-          })
-        );
-      }
+    sendBroadcast(game, {
+      type: "countdown",
+      gameId: game.id,
+      value: count,
     });
+
     await sleep(1000);
     count -= 1;
   }
@@ -304,28 +263,25 @@ async function startCountdown(game) {
 
     // On vérifie si joueur toujours co et on envoie si oui
     if (connection) {
-      connectionResponse = JSON.stringify({
+      sendConnection(connection, {
         type: "gameStart",
         gameId: game.id,
       });
-      connection.send(connectionResponse);
     }
   });
 
   // Démarrage de la game
-
   game.start(updateAllPlayerMovements, game);
 }
 
 async function handlePlayerMovement(connection, data) {
-  let connectionResponse;
   // On récupère la game et le joueur
   try {
     let game = games.get(data.gameId);
 
     if (!game || !game.checkPlayerInGame(data.playerId)) {
       // Serveur renvoie erreur si données invalides
-      connectionResponse = JSON.stringify({
+      sendConnection(connection, {
         type: "playerMovementResponse",
         playerId: data.playerId,
         gameId: data.gameId,
@@ -333,7 +289,6 @@ async function handlePlayerMovement(connection, data) {
         reason: "Player, game or player in game not found",
       });
 
-      connection.send(connectionResponse);
       return;
     }
 
@@ -384,35 +339,47 @@ function handleDisconnection(connection) {
     return;
   }
 
-  // Si le joueur n'est pas dans une partie, ne rien faire
+  // Si le joueur est dans une partie
+  for (const game in games) {
+    if (game.checkPlayerInGame(disconnectedPlayerId)) {
+      // Sinon si le joueur est dans une partie avec le statut "lobby",  retirer le joueur de la liste des joueurs
+      if (game.status === "lobby") {
+        game.players = game.players.filter(
+          (player) => player.id !== disconnectedPlayerId
+        );
+      } else {
+        // Sinon si le joueur est dans une partie avec le statut "game", le serveur change son état à "mort"
+        let playerInGame = game.getPlayer(disconnectedPlayerId);
+        playerInGame.alive = false;
+      }
 
-  // Sinon si le joueur est dans une partie avec le statut "lobby",  retirer le joueur de la liste des joueurs
-  // + broadcast aux autres joueurs
-  // Sinon si le joueur est dans une partie avec le statut "game", le serveur change son état à "mort"
+      // broadcast aux autres joueurs
+      sendBroadcast(game, {
+        type: "playerDisconnected",
+        playerId: disconnectedPlayerId,
+        gameId: game.id,
+      });
+    }
+  }
 }
 
 function updateAllPlayerMovements(game) {
-  let connectionResponse;
-
   // broadcast pour envoyer état du jeu à chaque client
   game.players.forEach((player) => {
     let connection = connections.get(player.id);
 
     // On vérifie si joueur toujours co et on envoie si oui
     if (connection) {
-      connectionResponse = JSON.stringify({
+      sendConnection(connection, {
         type: "updateAllPlayerMovements",
         gameId: game.id,
         players: game.players,
       });
-
-      connection.send(connectionResponse);
     }
   });
 }
 
 async function endGame(game, winnerId) {
-  let connectionResponse;
   // Stocke la game courante et l'id du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
@@ -439,15 +406,33 @@ async function endGame(game, winnerId) {
 
     // On vérifie si joueur toujours co et on envoie si oui
     if (connection) {
-      connectionResponse = JSON.stringify({
+      sendConnection(connection, {
         type: "endGame",
         winnerId: winnerId,
         valid: true,
       });
-      connection.send(connectionResponse);
     }
   }
 
   // Enlever la game de la liste game en cours
   games.delete(game.id);
+}
+
+// Fonctions utilitaires
+function sendConnection(connection, data) {
+  connection.send(JSON.stringify(data));
+}
+
+function sendBroadcast(game, data) {
+  game.players.forEach((player) => {
+    let connection = connections.get(player.id);
+    // On vérifie si joueur toujours co et on envoie si oui
+    if (connection) {
+      sendConnection(connection, data);
+    }
+  });
+}
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

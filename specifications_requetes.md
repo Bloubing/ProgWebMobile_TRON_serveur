@@ -1,15 +1,12 @@
 ## TODO
 
 - tester
-- changer Id des requetes de number à string
-- gérer la déconnexion
-- refactoriser connectionResponse "valid:false"
 - implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 - json schema ?
 
 # Déroulé des requêtes
 
-## Connexion utilisateur :
+## Connexion utilisateur
 
 Serveur reçoit :
 
@@ -63,6 +60,18 @@ Format du document Player :
   password : String, // voir requête client
   wins: 0,
   losses: 0,
+}
+```
+
+## Déconnexion utilisateur
+
+Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le client du lobby et informe les autres joueurs de la déconnexion:
+
+```
+{
+  type: "playerDisconnected",
+  playerId: String,
+  gameId: String,
 }
 ```
 
