@@ -1,19 +1,11 @@
-## remarques
-
-- sur l'interface, enlever le fade des trails car + dur a implementer et cest pas tron
-- coté client, faire les websockets avec le format des requetes demandés
-
 ## TODO
 
 - tester
-- update wins/losses de chaque joueur a la fin de partie
-- ajouter countdown serveur dans game.start() : 3,2,1
-- mettre au propre le fichier markdown, et les requetes/reponses (metre des valid:true là ou j'ai oublié)
-- hasher mdp pour ne pas stocker en clair
+- changer Id des requetes de number à string
+- gérer la déconnexion
+- refactoriser connectionResponse "valid:false"
 - implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 - json schema ?
-- refactoriser connectionResponse "valid:false"
-- gérer la déconnexion
 
 # Déroulé des requêtes
 
@@ -36,7 +28,7 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
-  playerId : Number,
+  playerId : String,
   valid : false
   reason : "Invalid password"
 }
@@ -47,12 +39,20 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
-  playerId : Number,
+  playerId : String,
   valid : true
 }
 ```
 
-- username n'existe pas dans la base de données -> le serveur ajoute à la base de données un joueur à partir de la requête client.
+- username n'existe pas dans la base de données -> le serveur ajoute à la base de données un joueur à partir de la requête client. Le serveur envoie :
+
+```
+{
+  type : "connectionResponse",
+  playerId : String,
+  valid : true
+}
+```
 
 Format du document Player :
 
@@ -76,7 +76,7 @@ Format du document Player :
 {
   type : "createGame",
   maxPlayers : Number, // entre 2 et 4
-  creatorId : Number,
+  creatorId : String,
   gameName : String,
 }
 ```
@@ -86,7 +86,7 @@ Format du document Player :
 ```
 {
   type : "createGameResponse",
-  gameId : Number,
+  gameId : String,
   valid: true,
 }
 ```
@@ -108,8 +108,8 @@ Format du document Player :
 ```
 {
   type : "joinGame",
-  playerId : Number,
-  gameToJoinId : Number,
+  playerId : String,
+  gameToJoinId : String,
 }
 ```
 
@@ -118,8 +118,8 @@ Format du document Player :
 ```
 {
   type : "joinGameResponse",
-  playerId : Number,
-  gameId : Number,
+  playerId : String,
+  gameId : String,
   valid: false,
   reason: "Lobby/game is full"
 }
@@ -132,9 +132,9 @@ Format du document Player :
 ```
 {
   type : "joinGameResponse",
-  newPlayerId : Number,
+  newPlayerId : String,
   newPlayerUsername: String,
-  gameId : Number,
+  gameId : String,
   valid: true,
 }
 ```
@@ -146,8 +146,8 @@ Format du document Player :
 ```
 {
   type : "playerReady",
-  playerId : Number,
-  gameId : Number,
+  playerId : String,
+  gameId : String,
   ready : Boolean,
 }
 ```
@@ -157,8 +157,8 @@ Format du document Player :
 ```
 {
   type: "playerReadyResponse",
-  playerId: Number,
-  gameId: Number,
+  playerId: String,
+  gameId: String,
   valid: false,
   reason: String,
 }
@@ -169,18 +169,28 @@ Format du document Player :
 ```
 {
   type: "playerReadyResponse",
-  playerId: Number,
-  gameId: Number,
+  playerId: String,
+  gameId: String,
   valid: true,
 }
 ```
 
-- Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il envoie aux clients :
+- Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il commence par envoyer aux clients un décompte :
+
+```
+{
+  type: "countdown",
+  gameId: String,
+  count: Number,
+}
+```
+
+Quand le décompte est fait, il envoie :
 
 ```
 {
   type : "gameStart",
-  gameId : Number,
+  gameId : String,
 }
 ```
 
@@ -192,8 +202,8 @@ Client envoie au serveur :
 
 {
   type : "playerMovement",
-  playerId : Number,
-  gameId : Number,
+  playerId : String,
+  gameId : String,
   direction: String, // "up", "down", "left", "right"
 }
 
@@ -204,8 +214,8 @@ S'il y a eu une erreur, le serveur répond :
 ```
 {
   type : "playerMovementResponse",
-  playerId : Number,
-  gameId : Number,
+  playerId : String,
+  gameId : String,
   valid: false,
   reason: String,
 }
@@ -216,7 +226,7 @@ Le serveur regarde s'il y a des collisions, met à jour les positions en envoyan
 ```
 {
   type : "updateAllPlayerMovements",
-  gameId : Number,
+  gameId : String,
   players : Array[Player],
 }
 
@@ -236,7 +246,7 @@ S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie et 
 ```
 {
 type: "endGame",
-winnerId: Number,
+winnerId: String,
 valid: true,
 }
 ```

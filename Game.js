@@ -74,8 +74,8 @@ class Game {
     });
 
     // renvoie l'unique vainqueur
-    // sinon renvoie -1 quand 0 winner ou + d'1 winner
-    return winners.length === 1 ? winners[0] : -1;
+    // sinon renvoie "no_winner" quand 0 winner ou + d'1 winner
+    return winners.length === 1 ? winners[0] : "no_winner";
   }
 
   checkCollision(player) {

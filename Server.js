@@ -8,6 +8,9 @@ const wsServer = new WebSocketServer({
   httpServer: server,
 });
 
+// Hash mot de passe
+const bcrypt = require("bcrypt");
+
 // Connexion à la base de données Mongo
 const connectMongo = require("./db");
 connectMongo();
@@ -58,8 +61,7 @@ wsServer.on("request", function (request) {
 
   connection.on("close", function (reasonCode, description) {
     // Le joueur s'est déconnecté
-    // Le serveur change son état à "mort"
-    console.log("Client has disconnected.");
+    handleDisconnection(connection);
   });
 });
 
@@ -69,7 +71,7 @@ async function handleConnectionPlayer(connection, data) {
     let connectionResponse;
 
     // Joueur existe mais mot de passe incorrect
-    if (player && player.password !== data.password) {
+    if (player && !(await bcrypt.compare(data.password, player.password))) {
       connectionResponse = JSON.stringify({
         type: "connectionResponse",
         playerId: player._id,
@@ -82,10 +84,13 @@ async function handleConnectionPlayer(connection, data) {
 
     // Joueur n'existe pas encore, le créer dans la base
     if (!player) {
+      const salt = await bcrypt.genSalt();
+      const hashedPassword = await bcrypt.hash(data.password, salt);
+
       // create fait un save()
       player = await playerModel.create({
         username: data.username,
-        password: data.password,
+        password: hashedPassword,
         wins: 0,
         losses: 0,
       });
@@ -214,7 +219,7 @@ async function handleJoinGame(connection, data) {
     }
   });
 
-  // Si non, le serveur envoie un JSON qui dit qu'il est impossible de rejoindre
+  // Sinon, le serveur envoie un JSON qui dit qu'il est impossible de rejoindre
 }
 
 function handlePlayerReady(connection, data) {
@@ -262,24 +267,54 @@ function handlePlayerReady(connection, data) {
   connection.send(connectionResponse);
 
   if (game.checkAllPlayersReady()) {
-    // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
-    // Cela déclenche la fonction startGame()
-    game.players.forEach((player) => {
-      let connection = connections.get(player.id);
+    startCountdown(game);
+  }
+}
 
-      // On vérifie si joueur toujours co et on envoie si oui
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function startCountdown(game) {
+  let count = 3;
+  let connectionResponse;
+
+  // Countdown jusqu'à 3 en broadcast
+  while (count >= 0) {
+    game.players.forEach((player) => {
+      const connection = connections.get(player.id);
       if (connection) {
-        connectionResponse = JSON.stringify({
-          type: "gameStart",
-          gameId: data.gameId,
-        });
-        connection.send(connectionResponse);
+        connection.send(
+          JSON.stringify({
+            type: "countdown",
+            gameId: game.id,
+            value: count,
+          })
+        );
       }
     });
-
-    // Démarrage de la game
-    game.start(updateAllPlayerMovements, game);
+    await sleep(1000);
+    count -= 1;
   }
+
+  // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
+  // Cela déclenche la fonction startGame()
+  game.players.forEach((player) => {
+    const connection = connections.get(player.id);
+
+    // On vérifie si joueur toujours co et on envoie si oui
+    if (connection) {
+      connectionResponse = JSON.stringify({
+        type: "gameStart",
+        gameId: game.id,
+      });
+      connection.send(connectionResponse);
+    }
+  });
+
+  // Démarrage de la game
+
+  game.start(updateAllPlayerMovements, game);
 }
 
 async function handlePlayerMovement(connection, data) {
@@ -334,6 +369,28 @@ async function handlePlayerMovement(connection, data) {
   }
 }
 
+function handleDisconnection(connection) {
+  let disconnectedPlayerId = null;
+
+  for (const [playerId, conn] of connections.entries()) {
+    if (conn === connection) {
+      disconnectedPlayerId = playerId;
+      connections.delete(playerId);
+      break;
+    }
+  }
+
+  if (!disconnectedPlayerId) {
+    return;
+  }
+
+  // Si le joueur n'est pas dans une partie, ne rien faire
+
+  // Sinon si le joueur est dans une partie avec le statut "lobby",  retirer le joueur de la liste des joueurs
+  // + broadcast aux autres joueurs
+  // Sinon si le joueur est dans une partie avec le statut "game", le serveur change son état à "mort"
+}
+
 function updateAllPlayerMovements(game) {
   let connectionResponse;
 
@@ -369,7 +426,15 @@ async function endGame(game, winnerId) {
   game.stop();
 
   // broadcast fin de partie
-  game.players.forEach((player) => {
+  for (const player of game.players) {
+    // Mettre à jour le nombre de victoires de chaque joueur de la partie
+
+    // +1 victoire si player == winner, sinon +1 défaite
+    await playerModel.updateOne(
+      { _id: player.id },
+      winnerId === player.id ? { $inc: { wins: 1 } } : { $inc: { losses: 1 } }
+    );
+
     let connection = connections.get(player.id);
 
     // On vérifie si joueur toujours co et on envoie si oui
@@ -381,7 +446,7 @@ async function endGame(game, winnerId) {
       });
       connection.send(connectionResponse);
     }
-  });
+  }
 
   // Enlever la game de la liste game en cours
   games.delete(game.id);
