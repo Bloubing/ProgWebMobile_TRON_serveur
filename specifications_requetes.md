@@ -1,10 +1,11 @@
 ## TODO
 
-- tester
-- note : pour l'instant tous les joueurs apparaissent en 0, 0
+- tester (check mouvements players)
+- renvoyer qqch de différent qd nombre de winners > 1
+- décomposer les réponses valid:false qui renvoient plusieurs erreurs en OR pour+ de précision
 - implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 - json schema ?
-- désactiver le bouton ready quand premiere reponse countdown recue par client
+- côté client : désactiver le bouton ready quand premiere reponse countdown recue par client
 
 # Déroulé des requêtes
 

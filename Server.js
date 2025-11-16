@@ -26,6 +26,7 @@ const Player = require("./Player");
 
 // Liste des games en cours : associe gameId (clé) et game (valeur)
 const games = new Map();
+
 // Liste des connexions en cours : associe playerId (clé) et connexion (valeur)
 const connections = new Map();
 
@@ -70,7 +71,7 @@ async function handleConnectionPlayer(connection, data) {
   try {
     let player = await playerModel.findOne({ username: data.username });
 
-    // Joueur existe mais mot de passe incorrect
+    // Le joueur existe mais mot de passe incorrect
     if (player && !(await bcrypt.compare(data.password, player.password))) {
       sendConnection(connection, {
         type: "connectionResponse",
@@ -86,7 +87,7 @@ async function handleConnectionPlayer(connection, data) {
       const salt = await bcrypt.genSalt();
       const hashedPassword = await bcrypt.hash(data.password, salt);
 
-      // create fait un save()
+      // create() fait un save()
       player = await playerModel.create({
         username: data.username,
         password: hashedPassword,
@@ -110,7 +111,7 @@ async function handleConnectionPlayer(connection, data) {
 }
 
 function handleCreateGame(connection, data) {
-  // Vérifier données valides
+  // On vérifie si données valides
   if (
     !data.creatorId ||
     !data.gameName ||
@@ -130,7 +131,7 @@ function handleCreateGame(connection, data) {
   // Ajoute par défaut le joueur créateur à la liste des joueurs
   const game = new Game(data.creatorId, data.gameName, data.maxPlayers);
 
-  // On ajoute la game à la liste des games en cours
+  // On ajoute la partie à la liste des parties en cours
   games.set(game.id, game);
 
   sendConnection(connection, {
@@ -179,10 +180,10 @@ async function handleJoinGame(connection, data) {
     });
     return;
   }
-  // Le serveur vérifie si le nombre de connexions < au nombre de joueurs max
-  // défini de la game courante
+  // Le serveur vérifie que le nombre de connexions est inférieur au nombre de joueurs max
+  // défini dans la partie courante
   if (game.players.length >= game.maxPlayers) {
-    // Serveur renvoie erreur au client
+    // Le serveur renvoie une erreur au client
 
     sendConnection(connection, {
       type: "joinGameResponse",
@@ -194,7 +195,7 @@ async function handleJoinGame(connection, data) {
     return;
   }
 
-  // Si oui, le serveur ajoute la connexion à la game demandée et le serveur informe
+  // Si oui, le serveur ajoute la connexion à la partie demandée et le serveur informe
   // tous les clients de l'arrivée du nouveau joueur
   let newPlayerInGame;
   if (game.players.length > 1) {
@@ -206,7 +207,7 @@ async function handleJoinGame(connection, data) {
 
   console.log(`Le joueur ${data.playerId} a rejoint la partie ${data.gameId}`);
 
-  // broadcast informant de l'arrivée du nouveau joueur
+  // Broadcast informant de l'arrivée du nouveau joueur
   sendBroadcast(game, {
     type: "joinGameResponse",
     newPlayerId: data.playerId,
@@ -242,14 +243,14 @@ function handlePlayerReady(connection, data) {
     return;
   }
   let player = game.getPlayer(data.playerId);
-  // Si le joueur était déjà prêt, pas besoin de renvoyer un paquet de confirmation
+  // Si le joueur était déjà prêt : pas besoin de renvoyer un paquet de confirmation
   if (player.ready) {
     return;
   }
-  // Mettre à jour statut "ready" du joueur à true dans la game
+  // Mise à jour du statut "ready" du joueur à true dans la partie
   player.ready = true;
 
-  // Le serveur confirme au client que le statut ready a bien été changé
+  // Le serveur confirme au client que le statut "ready" a bien été changé
   sendConnection(connection, {
     type: "playerReadyResponse",
     playerId: data.playerId,
@@ -263,9 +264,9 @@ function handlePlayerReady(connection, data) {
 }
 
 function startCountdown(game) {
+  // Compte à rebours jusqu'à 3 en broadcast avant le début de la partie
   let count = 3;
   let timeCountMs = 1000;
-  // Countdown jusqu'à 3 en broadcast
 
   const countInterval = setInterval(() => {
     sendBroadcast(game, {
@@ -276,33 +277,35 @@ function startCountdown(game) {
     count -= 1;
     if (count < 0) {
       clearInterval(countInterval);
-      // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
-      // Cela déclenche la fonction startGame()
-      game.players.forEach((player) => {
-        const connection = connections.get(player.id);
 
-        // On vérifie si joueur toujours co et on envoie si oui
-        if (connection) {
-          sendConnection(connection, {
-            type: "gameStart",
-            gameId: game.id,
-          });
-        }
+      // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
+      sendBroadcast(game, {
+        type: "gameStart",
+        gameId: game.id,
       });
 
-      // Démarrage de la game
+      // Démarrage de la partie
       game.start(updateAllPlayerMovements, game);
     }
   }, timeCountMs);
 }
 
+function updateAllPlayerMovements(game) {
+  // Broadcast pour envoyer état du jeu à chaque client
+  sendBroadcast(game, {
+    type: "updateAllPlayerMovements",
+    gameId: game.id,
+    players: game.players,
+  });
+}
+
 async function handlePlayerMovement(connection, data) {
-  // On récupère la game et le joueur
+  // On récupère la partie et le joueur
   try {
     let game = games.get(data.gameId);
 
     if (!game || !game.checkPlayerInGame(data.playerId)) {
-      // Serveur renvoie erreur si données invalides
+      // Le serveur renvoie une erreur si données invalides
       sendConnection(connection, {
         type: "playerMovementResponse",
         playerId: data.playerId,
@@ -316,29 +319,29 @@ async function handlePlayerMovement(connection, data) {
 
     let player = game.getPlayer(data.playerId);
 
-    // update position dans la game selon direction
+    // Mise à jour de la position dans le jeu selon la direction
     player.moveDirection(data.direction);
 
-    // check collision
+    // Vérification de collisions
     if (game.checkCollision(player)) {
-      // il y a eu une collision avec player
-      // player de la connexion actuelle est mort, on met à jour son état alive dans la game
+      // Il y a eu une collision avec le joueur
+      // Le joueur de la connexion actuelle est mort, on met à jour son état alive dans la game
       player.alive = false;
 
-      // check combien de joueurs vivants
+      // On vérifie combien de joueurs sont vivants
       if (game.getAliveCount() <= 1) {
         let winner = game.getWinner();
         if (winner) {
           endGame(game, winner.id);
         } else {
-          // Pas de gagnant, égalité
+          // Pas de gagnant : égalité
           // TODO A revoir, mettre un tableau des derniers joueurs restants avant fin du jeu
           endGame(game, -1);
         }
       }
     } else {
-      // On update la case
-      // On la remplit par l'id du joueur pour identifier par quel joueur chaque case est occupée
+      // On met à jour la case de jeu
+      // On la remplit par l'ID du joueur pour identifier par quel joueur chaque case est occupée
       game.grid[player.x][player.y] = player.id;
     }
   } catch (err) {
@@ -349,6 +352,7 @@ async function handlePlayerMovement(connection, data) {
 function handleDisconnection(connection) {
   let disconnectedPlayerId = null;
 
+  // On récupère l'ID du joueur déconnecté
   for (const [playerId, conn] of connections.entries()) {
     if (conn === connection) {
       disconnectedPlayerId = playerId;
@@ -361,21 +365,22 @@ function handleDisconnection(connection) {
     return;
   }
 
-  // Si le joueur est dans une partie
   for (const game of games) {
+    // Si le joueur est dans une partie
     if (game.checkPlayerInGame(disconnectedPlayerId)) {
-      // Sinon si le joueur est dans une partie avec le statut "lobby",  retirer le joueur de la liste des joueurs
       if (game.status === "lobby") {
+        // Le joueur est dans une partie avec le statut "lobby",
+        // on retire le joueur de la liste des joueurs
         game.players = game.players.filter(
           (player) => player.id !== disconnectedPlayerId
         );
       } else {
-        // Sinon si le joueur est dans une partie avec le statut "game", le serveur change son état à "mort"
+        // Le joueur est dans une partie avec le statut "game",
+        // on change son état à "mort"
         let playerInGame = game.getPlayer(disconnectedPlayerId);
         playerInGame.alive = false;
       }
 
-      // broadcast aux autres joueurs
       sendBroadcast(game, {
         type: "playerDisconnected",
         playerId: disconnectedPlayerId,
@@ -385,24 +390,8 @@ function handleDisconnection(connection) {
   }
 }
 
-function updateAllPlayerMovements(game) {
-  // broadcast pour envoyer état du jeu à chaque client
-  game.players.forEach((player) => {
-    let connection = connections.get(player.id);
-
-    // On vérifie si joueur toujours co et on envoie si oui
-    if (connection) {
-      sendConnection(connection, {
-        type: "updateAllPlayerMovements",
-        gameId: game.id,
-        players: game.players,
-      });
-    }
-  });
-}
-
 async function endGame(game, winnerId) {
-  // Stocke la game courante et l'id du gagnant en base de données
+  // On stocke la partie courante et l'ID du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
     players: game.players,
@@ -411,22 +400,20 @@ async function endGame(game, winnerId) {
     endedAt: Date.now(),
   });
 
-  // On stoppe le jeu
   game.stop();
 
-  // broadcast fin de partie
   for (const player of game.players) {
-    // Mettre à jour le nombre de victoires de chaque joueur de la partie
+    // MàJ du nombre de victoires de chaque joueur de la partie
 
-    // +1 victoire si player == winner, sinon +1 défaite
+    // +1 victoire si le joueur === gagnant, sinon +1 défaite
     await playerModel.updateOne(
       { _id: player.id },
       winnerId === player.id ? { $inc: { wins: 1 } } : { $inc: { losses: 1 } }
     );
 
+    // Broadcast de fin de partie
     let connection = connections.get(player.id);
 
-    // On vérifie si joueur toujours co et on envoie si oui
     if (connection) {
       sendConnection(connection, {
         type: "endGame",
@@ -436,11 +423,12 @@ async function endGame(game, winnerId) {
     }
   }
 
-  // Enlever la game de la liste game en cours
+  // On enlève la partie de la liste des parties en cours
   games.delete(game.id);
 }
 
 // Fonctions utilitaires
+
 function sendConnection(connection, data) {
   connection.send(JSON.stringify(data));
 }
@@ -448,8 +436,9 @@ function sendConnection(connection, data) {
 function sendBroadcast(game, data) {
   game.players.forEach((player) => {
     let connection = connections.get(player.id);
-    // On vérifie si joueur toujours co et on envoie si oui
 
+    // On vérifie si le joueur est toujours connecté
+    //  et on envoie le paquet si oui
     if (connection) {
       sendConnection(connection, data);
     }
