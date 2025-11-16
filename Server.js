@@ -96,7 +96,7 @@ async function handleConnectionPlayer(connection, data) {
     }
 
     // On stocke la nouvelle connexion dans la liste de connexions
-    connections.set(player._id, connection);
+    connections.set(player._id.toString(), connection);
 
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
     sendConnection(connection, {
@@ -168,6 +168,17 @@ async function handleJoinGame(connection, data) {
     });
     return;
   }
+
+  if (game.checkPlayerInGame(data.playerId)) {
+    sendConnection(connection, {
+      type: "joinGameResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Player already in game",
+    });
+    return;
+  }
   // Le serveur vérifie si le nombre de connexions < au nombre de joueurs max
   // défini de la game courante
   if (game.players.length >= game.maxPlayers) {
@@ -185,8 +196,15 @@ async function handleJoinGame(connection, data) {
 
   // Si oui, le serveur ajoute la connexion à la game demandée et le serveur informe
   // tous les clients de l'arrivée du nouveau joueur
-  let newPlayerInGame = new Player(data.playerId, 0, 0);
+  let newPlayerInGame;
+  if (game.players.length > 1) {
+    newPlayerInGame = new Player(data.playerId, 90, 20);
+  } else {
+    newPlayerInGame = new Player(data.playerId, 10, 20);
+  }
   game.players.push(newPlayerInGame);
+
+  console.log(`Le joueur ${data.playerId} a rejoint la partie ${data.gameId}`);
 
   // broadcast informant de l'arrivée du nouveau joueur
   sendBroadcast(game, {
@@ -199,7 +217,6 @@ async function handleJoinGame(connection, data) {
 }
 
 function handlePlayerReady(connection, data) {
-  let connectionResponse;
   // On vérifie si données valides
   if (!data.playerId || !data.gameId) {
     sendConnection(connection, {
@@ -225,6 +242,10 @@ function handlePlayerReady(connection, data) {
     return;
   }
   let player = game.getPlayer(data.playerId);
+  // Si le joueur était déjà prêt, pas besoin de renvoyer un paquet de confirmation
+  if (player.ready) {
+    return;
+  }
   // Mettre à jour statut "ready" du joueur à true dans la game
   player.ready = true;
 
@@ -241,37 +262,38 @@ function handlePlayerReady(connection, data) {
   }
 }
 
-async function startCountdown(game) {
+function startCountdown(game) {
   let count = 3;
-
+  let timeCountMs = 1000;
   // Countdown jusqu'à 3 en broadcast
-  while (count >= 0) {
+
+  const countInterval = setInterval(() => {
     sendBroadcast(game, {
       type: "countdown",
       gameId: game.id,
       value: count,
     });
-
-    await sleep(1000);
     count -= 1;
-  }
+    if (count < 0) {
+      clearInterval(countInterval);
+      // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
+      // Cela déclenche la fonction startGame()
+      game.players.forEach((player) => {
+        const connection = connections.get(player.id);
 
-  // Si oui, le serveur envoie à tous les clients un JSON qui les informe que la partie commence
-  // Cela déclenche la fonction startGame()
-  game.players.forEach((player) => {
-    const connection = connections.get(player.id);
-
-    // On vérifie si joueur toujours co et on envoie si oui
-    if (connection) {
-      sendConnection(connection, {
-        type: "gameStart",
-        gameId: game.id,
+        // On vérifie si joueur toujours co et on envoie si oui
+        if (connection) {
+          sendConnection(connection, {
+            type: "gameStart",
+            gameId: game.id,
+          });
+        }
       });
-    }
-  });
 
-  // Démarrage de la game
-  game.start(updateAllPlayerMovements, game);
+      // Démarrage de la game
+      game.start(updateAllPlayerMovements, game);
+    }
+  }, timeCountMs);
 }
 
 async function handlePlayerMovement(connection, data) {
@@ -340,7 +362,7 @@ function handleDisconnection(connection) {
   }
 
   // Si le joueur est dans une partie
-  for (const game in games) {
+  for (const game of games) {
     if (game.checkPlayerInGame(disconnectedPlayerId)) {
       // Sinon si le joueur est dans une partie avec le statut "lobby",  retirer le joueur de la liste des joueurs
       if (game.status === "lobby") {
@@ -427,12 +449,9 @@ function sendBroadcast(game, data) {
   game.players.forEach((player) => {
     let connection = connections.get(player.id);
     // On vérifie si joueur toujours co et on envoie si oui
+
     if (connection) {
       sendConnection(connection, data);
     }
   });
-}
-
-async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

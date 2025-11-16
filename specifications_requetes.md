@@ -1,8 +1,10 @@
 ## TODO
 
 - tester
+- note : pour l'instant tous les joueurs apparaissent en 0, 0
 - implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 - json schema ?
+- désactiver le bouton ready quand premiere reponse countdown recue par client
 
 # Déroulé des requêtes
 

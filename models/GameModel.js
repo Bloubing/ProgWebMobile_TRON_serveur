@@ -7,7 +7,7 @@ const gameSchema = new mongoose.Schema({
   generatedGameId: String, // L'id générée lors de la création du jeu != id stockée dans la base
   players: [
     {
-      id: Number,
+      id: String,
       x: Number,
       y: Number,
       ready: Boolean,
