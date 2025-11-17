@@ -22,10 +22,10 @@ const Game = require("./Game");
 const Player = require("./Player");
 
 // Liste des games en cours : associe gameId (clé) et game (valeur)
-const games = new Map();
+var games = new Map();
 
 // Liste des connexions en cours : associe playerId (clé) et connexion (valeur)
-const connections = new Map();
+var connections = new Map();
 
 wsServer.on("request", function (request) {
   const connection = request.accept(null, request.origin);
@@ -96,6 +96,11 @@ async function handleConnectionPlayer(connection, data) {
     // On stocke la nouvelle connexion dans la liste de connexions
     connections.set(player._id.toString(), connection);
 
+    // console.log("DEBUGGGGGGG");
+    // for (const game of games.values()) {
+    //   console.log(game);
+    // }
+
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
     sendConnection(connection, {
       type: "connectionResponse",
@@ -141,19 +146,12 @@ function handleCreateGame(connection, data) {
 function handleGetAllLobbies(connection) {
   gamesArray = [];
   //TODO ne push a gamesArray que si le statut est un lobby
-  // game = gameId, gameName, maxPlayers, currentPlayers
-  for (const game of games) {
-    //TODO FIX pourquoi game est un tableau [id, game]
-    console.log("DEBUG GAME ");
-
-    console.log(game[1].id);
-    console.log(game[1].name);
-    console.log(game[1].maxPlayers);
+  for (const game of games.values()) {
     gameItem = {
-      gameId: game[1].id,
-      gameName: game[1].name,
-      maxPlayers: game[1].maxPlayers,
-      currentPlayers: game[1].players.length,
+      gameId: game.id,
+      gameName: game.name,
+      maxPlayers: game.maxPlayers,
+      currentPlayers: game.players.length,
     };
 
     gamesArray.push(gameItem);
@@ -390,7 +388,7 @@ function handleDisconnection(connection) {
     return;
   }
 
-  for (const game of games) {
+  for (const game of games.values()) {
     // Si le joueur est dans une partie
     if (game.checkPlayerInGame(disconnectedPlayerId)) {
       if (game.status === "lobby") {
