@@ -103,26 +103,48 @@ Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le
 
 ### Rejoindre un lobby
 
-- Quand le client clique sur un lobby, il envoie au serveur :
+- Le client demande la liste des lobbies :
 
 ```
 {
-  type : "joinGame",
-  playerId : String,
-  gameToJoinId : String,
+  type: "getAllLobbies",
+  playerId: String
 }
+```
+
+- Le serveur répond en donnant la liste des lobbies :
+
+```
+{
+  type: "getAllLobbiesResponse"
+  lobbies: [lobbies]
+}
+```
+
+- Quand le client clique sur un lobby, il envoie au serveur :
+
+```
+
+{
+type : "joinGame",
+playerId : String,
+gameToJoinId : String,
+}
+
 ```
 
 - Si le lobby est déjà plein, le serveur informe le client en envoyant :
 
 ```
+
 {
-  type : "joinGameResponse",
-  playerId : String,
-  gameId : String,
-  valid: false,
-  reason: "Lobby/game is full"
+type : "joinGameResponse",
+playerId : String,
+gameId : String,
+valid: false,
+reason: "Lobby/game is full"
 }
+
 ```
 
 - Le serveur peut envoyant des valid:false avec d'autres valeurs de reason : la game n'existe pas, le player n'existe pas, etc.
@@ -130,13 +152,15 @@ Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le
 - Si le joueur a réussi à rejoindre le lobby, le serveur informe tous les clients de l'arrivée du nouveau joueur :
 
 ```
+
 {
-  type : "joinGameResponse",
-  newPlayerId : String,
-  newPlayerUsername: String,
-  gameId : String,
-  valid: true,
+type : "joinGameResponse",
+newPlayerId : String,
+newPlayerUsername: String,
+gameId : String,
+valid: true,
 }
+
 ```
 
 ### Cliquer sur "Ready"
@@ -144,54 +168,64 @@ Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le
 - Quand le joueur clique sur "Ready", cela envoie au serveur:
 
 ```
+
 {
-  type : "playerReady",
-  playerId : String,
-  gameId : String,
-  ready : Boolean,
+type : "playerReady",
+playerId : String,
+gameId : String,
+ready : Boolean,
 }
+
 ```
 
 - S'il y a une erreur après cette action, le serveur envoie au client :
 
 ```
+
 {
-  type: "playerReadyResponse",
-  playerId: String,
-  gameId: String,
-  valid: false,
-  reason: String,
+type: "playerReadyResponse",
+playerId: String,
+gameId: String,
+valid: false,
+reason: String,
 }
+
 ```
 
 - S'il n'y a pas d'erreur et que le statut "Ready" du joueur a bien été pris en compte, le serveur confirme :
 
 ```
+
 {
-  type: "playerReadyResponse",
-  playerId: String,
-  gameId: String,
-  valid: true,
+type: "playerReadyResponse",
+playerId: String,
+gameId: String,
+valid: true,
 }
+
 ```
 
 - Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il commence par envoyer aux clients un décompte :
 
 ```
+
 {
-  type: "countdown",
-  gameId: String,
-  count: Number,
+type: "countdown",
+gameId: String,
+count: Number,
 }
+
 ```
 
 Quand le décompte est fait, il envoie :
 
 ```
+
 {
-  type : "gameStart",
-  gameId : String,
+type : "gameStart",
+gameId : String,
 }
+
 ```
 
 ## Game en cours
@@ -201,10 +235,10 @@ Client envoie au serveur :
 ```
 
 {
-  type : "playerMovement",
-  playerId : String,
-  gameId : String,
-  direction: String, // "up", "down", "left", "right"
+type : "playerMovement",
+playerId : String,
+gameId : String,
+direction: String, // "up", "down", "left", "right"
 }
 
 ```
@@ -212,43 +246,53 @@ Client envoie au serveur :
 S'il y a eu une erreur, le serveur répond :
 
 ```
+
 {
-  type : "playerMovementResponse",
-  playerId : String,
-  gameId : String,
-  valid: false,
-  reason: String,
+type : "playerMovementResponse",
+playerId : String,
+gameId : String,
+valid: false,
+reason: String,
 }
+
 ```
 
 Le serveur regarde s'il y a des collisions, met à jour les positions en envoyant à tous les clients à intervalle fixe :
 
 ```
+
 {
-  type : "updateAllPlayerMovements",
-  gameId : String,
-  players : Array[Player],
+type : "updateAllPlayerMovements",
+gameId : String,
+players : Array[Player],
 }
 
 // Player
 {
-  id : Number,
-  x : Number,
-  y : Number,
-  alive : Boolean,
-  ready : Boolean;
-  currentDirection : String,
+id : Number,
+x : Number,
+y : Number,
+alive : Boolean,
+ready : Boolean;
+currentDirection : String,
 }
+
 ```
 
 S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie et envoie au client:
 
 ```
+
 {
 type: "endGame",
 winnerId: String,
 valid: true,
 }
+
 ```
 
 On arrête le jeu côté serveur.
+
+```
+
+```

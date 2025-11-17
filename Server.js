@@ -43,6 +43,9 @@ wsServer.on("request", function (request) {
         // Un lobby === une game, seul le statut change
         handleCreateGame(connection, data);
         break;
+      case "getAllLobbies":
+        handleGetAllLobbies(connection);
+        break;
       case "joinGame":
         // Un joueur clique sur rejoindre un lobby
         handleJoinGame(connection, data);
@@ -133,6 +136,34 @@ function handleCreateGame(connection, data) {
     gameId: game.id,
     valid: true,
   });
+}
+
+function handleGetAllLobbies(connection) {
+  gamesArray = [];
+  //TODO ne push a gamesArray que si le statut est un lobby
+  // game = gameId, gameName, maxPlayers, currentPlayers
+  for (const game of games) {
+    //TODO FIX pourquoi game est un tableau [id, game]
+    console.log("DEBUG GAME ");
+
+    console.log(game[1].id);
+    console.log(game[1].name);
+    console.log(game[1].maxPlayers);
+    gameItem = {
+      gameId: game[1].id,
+      gameName: game[1].name,
+      maxPlayers: game[1].maxPlayers,
+      currentPlayers: game[1].players.length,
+    };
+
+    gamesArray.push(gameItem);
+  }
+
+  sendConnection(connection, {
+    type: "getAllLobbiesResponse",
+    lobbies: gamesArray,
+  });
+  return;
 }
 
 async function handleJoinGame(connection, data) {

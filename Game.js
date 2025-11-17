@@ -18,7 +18,7 @@ class Game {
     // Une game est un lobby lors de sa création
     this.status = "lobby";
     // On commence à remplir le tableau avec le joueur créateur
-    this.players = [new Player(creatorId, 0, 0)];
+    this.players = [new Player(creatorId, 20, 0)];
     this.startedAt = Date.now();
     this.interval = null;
   }
