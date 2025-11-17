@@ -238,6 +238,13 @@ async function handleJoinGame(connection, data) {
 
   console.log(`Le joueur ${data.playerId} a rejoint la partie ${data.gameId}`);
 
+  for (const conn of connections.values()) {
+    sendConnection(conn, {
+      type: "updateLobbyInfos",
+      gameId: game.id,
+    });
+  }
+
   // Broadcast informant de l'arrivée du nouveau joueur
   sendBroadcast(game, {
     type: "joinGameResponse",
