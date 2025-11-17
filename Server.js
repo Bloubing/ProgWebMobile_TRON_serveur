@@ -136,11 +136,19 @@ function handleCreateGame(connection, data) {
   // On ajoute la partie à la liste des parties en cours
   games.set(game.id, game);
 
-  sendConnection(connection, {
-    type: "createGameResponse",
-    gameId: game.id,
-    valid: true,
-  });
+  // Broadcast pour informer tous les joueurs
+  // (dont ceux qui ne sont pas dans une partie,
+  // c'est pourquoi on utilise pas sendBroadcast qui est lié à une partie)
+  // de la création d'une nouvelle partie
+  // Pour que les clients n'aient pas à rafraîchir leur page pour voir la nouvelle partie
+  for (const conn of connections.values()) {
+    sendConnection(conn, {
+      type: "createGameResponse",
+      gameId: game.id,
+      creatorId: data.creatorId,
+      valid: true,
+    });
+  }
 }
 
 function handleGetAllLobbies(connection) {
@@ -397,6 +405,19 @@ function handleDisconnection(connection) {
         game.players = game.players.filter(
           (player) => player.id !== disconnectedPlayerId
         );
+
+        // Si le lobby est maintenant vide, on supprime le lobby
+        if (game.players.length === 0) {
+          games.delete(game.id);
+        }
+
+        // Broadcast pour tous les joueurs dont ceux pas dans une partie, pour mettre à jour le nombre de joueurs présents OU enlever le lobby qui est vide
+        for (const conn of connections.values()) {
+          sendConnection(conn, {
+            type: "updateLobbyInfos",
+            gameId: game.id,
+          });
+        }
       } else {
         // Le joueur est dans une partie avec le statut "game",
         // on change son état à "mort"

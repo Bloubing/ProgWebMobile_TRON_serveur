@@ -1,5 +1,7 @@
 ## TODO
 
+- RECHECK createGameResponse car pour l'instant il est en broadcast donc ca va changer le gameId de TOUS les joueurs connectés => dans getGameId : changer que si data.creatorId === playerId
+
 - tester (check mouvements players)
 - renvoyer qqch de différent qd nombre de winners > 1
 - décomposer les réponses valid:false qui renvoient plusieurs erreurs en OR pour+ de précision
@@ -56,7 +58,14 @@ Le serveur regarde dans la base de données :
 
 ## Déconnexion utilisateur
 
-Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le client du lobby et informe les autres joueurs de la déconnexion:
+Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le client du lobby et informe en broadcast tous les joueurs connectés pour mettre à jour la liste des lobbies :
+
+```
+type: "updateLobbyInfos",
+gameId: game.id,
+```
+
+Si le client était dans une game, le serveur envoie aux joueurs de la game :
 
 ```
 {
@@ -81,12 +90,13 @@ Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le
 }
 ```
 
-- Si le lobby a bien été créé, le serveur envoie :
+- Si le lobby a bien été créé, le serveur envoie en broadcast, à tous les joueurs connectés :
 
 ```
 {
   type : "createGameResponse",
   gameId : String,
+  creatorId: String,
   valid: true,
 }
 ```
