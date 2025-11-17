@@ -54,18 +54,6 @@ Le serveur regarde dans la base de données :
 }
 ```
 
-Format du document Player :
-
-```
-{
-  id: ID,
-  username: String, // voir requête client
-  password : String, // voir requête client
-  wins: 0,
-  losses: 0,
-}
-```
-
 ## Déconnexion utilisateur
 
 Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le client du lobby et informe les autres joueurs de la déconnexion:

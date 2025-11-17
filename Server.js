@@ -9,9 +9,6 @@ const wsServer = new WebSocketServer({
   httpServer: server,
 });
 
-// Hash mot de passe
-const bcrypt = require("bcrypt");
-
 // Connexion à la base de données Mongo
 const connectMongo = require("./db");
 connectMongo();
@@ -72,7 +69,7 @@ async function handleConnectionPlayer(connection, data) {
     let player = await playerModel.findOne({ username: data.username });
 
     // Le joueur existe mais mot de passe incorrect
-    if (player && !(await bcrypt.compare(data.password, player.password))) {
+    if (player && data.password !== player.password) {
       sendConnection(connection, {
         type: "connectionResponse",
         playerId: player._id,
@@ -84,13 +81,10 @@ async function handleConnectionPlayer(connection, data) {
 
     // Joueur n'existe pas encore, le créer dans la base
     if (!player) {
-      const salt = await bcrypt.genSalt();
-      const hashedPassword = await bcrypt.hash(data.password, salt);
-
       // create() fait un save()
       player = await playerModel.create({
         username: data.username,
-        password: hashedPassword,
+        password: data.password,
         wins: 0,
         losses: 0,
       });
