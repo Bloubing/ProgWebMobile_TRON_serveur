@@ -3,7 +3,7 @@ const Player = require("./Player");
 
 // Structure de la game pendant une partie
 class Game {
-  constructor(creatorId, name, maxPlayers) {
+  constructor(creatorId, name, maxPlayers, endGame) {
     // Id unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
@@ -18,9 +18,10 @@ class Game {
     // Une game est un lobby lors de sa création
     this.status = "lobby";
     // On commence à remplir le tableau avec le joueur créateur
-    this.players = [new Player(creatorId, 20, 0)];
+    this.players = [new Player(creatorId, this.size / 2, 25, "left")];
     this.startedAt = Date.now();
     this.interval = null;
+    this.endGame = endGame;
   }
 
   start(func, parameter) {
@@ -32,14 +33,39 @@ class Game {
     this.status = "game";
     // Lancer un intervalle de updateAllPlayerMovements
     this.interval = setInterval(() => {
+      this.update();
       func(parameter);
-    }, 200);
+    }, 1000);
   }
 
   stop() {
     // Stopper l'intervalle
     if (this.interval) {
       clearInterval(this.interval);
+    }
+  }
+
+  update() {
+    for (const player of this.players) {
+      if (!player.alive) continue;
+
+      // Faire avancer joueur
+      player.move();
+
+      // Check collision
+      if (this.checkCollision(player)) {
+        player.alive = false;
+
+        if (this.getAliveCount() <= 1) {
+          let winner = this.getWinner();
+          this.endGame(this, winner.id);
+          return;
+        }
+        continue;
+      }
+
+      // Marquer la case comme occupée
+      this.grid[player.x][player.y] = player.id;
     }
   }
 

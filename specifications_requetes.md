@@ -1,19 +1,34 @@
 ## TODO
 
-- RECHECK createGameResponse car pour l'instant il est en broadcast donc ca va changer le gameId de TOUS les joueurs connectés => dans getGameId : changer que si data.creatorId === playerId
+- PWS : optimiser le broadcast aux joueurs connectés : envoyés que à ceux qui ne sont pas dans une game
 
-- tester (check mouvements players)
-- renvoyer qqch de différent qd nombre de winners > 1
-- décomposer les réponses valid:false qui renvoient plusieurs erreurs en OR pour+ de précision
-- implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
+- PWS : renvoyer qqch de différent qd nombre de winners > 1
+
+- PWS: décomposer les réponses valid:false qui renvoient plusieurs erreurs en OR pour+ de précision
+
+- PWS : implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
+
+- PWC : désactiver le bouton ready quand premiere reponse countdown recue par client
+
+- PWC : remplacer les alert par de vrais menus d'erreur
+
+- PWC : faire marcher le restart game
+
+- PWC : mettre un systeme de ready (remplacer le ready automatique temporaire)
+
+- fix bug qui fait que qd on se deco, la game est tjrs en cours
+
+- fix bug qui fait que la partie demarre meme si pas bon nb de joueurs
+
+- ajouter score
+
 - json schema ?
-- côté client : désactiver le bouton ready quand premiere reponse countdown recue par client
 
-# Déroulé des requêtes
+# Déroulé des requêtes-réponses
 
-## Connexion utilisateur
+## Connexion du joueur
 
-Serveur reçoit :
+Quand le joueur se connecte, le serveur reçoit de la part du client:
 
 ```
   {
@@ -56,7 +71,7 @@ Le serveur regarde dans la base de données :
 }
 ```
 
-## Déconnexion utilisateur
+## Déconnexion du joueur
 
 Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le client du lobby et informe en broadcast tous les joueurs connectés pour mettre à jour la liste des lobbies :
 

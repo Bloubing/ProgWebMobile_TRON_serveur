@@ -131,7 +131,12 @@ function handleCreateGame(connection, data) {
 
   // Le serveur crée un objet Game qui contient liste des joueurs
   // Ajoute par défaut le joueur créateur à la liste des joueurs
-  const game = new Game(data.creatorId, data.gameName, data.maxPlayers);
+  const game = new Game(
+    data.creatorId,
+    data.gameName,
+    data.maxPlayers,
+    endGame
+  );
 
   // On ajoute la partie à la liste des parties en cours
   games.set(game.id, game);
@@ -229,10 +234,15 @@ async function handleJoinGame(connection, data) {
   // Si oui, le serveur ajoute la connexion à la partie demandée et le serveur informe
   // tous les clients de l'arrivée du nouveau joueur
   let newPlayerInGame;
-  if (game.players.length > 1) {
-    newPlayerInGame = new Player(data.playerId, 90, 20);
-  } else {
-    newPlayerInGame = new Player(data.playerId, 10, 20);
+  if (game.players.length === 1) {
+    // 2e joueur
+    newPlayerInGame = new Player(data.playerId, 0, 25, "right");
+  } else if (game.players.length === 2) {
+    // 3e joueur
+    newPlayerInGame = new Player(data.playerId, 25, 0, "up");
+  } else if (game.players.length === 3) {
+    // 4e joueur
+    newPlayerInGame = new Player(data.playerId, 25, 25, "down");
   }
   game.players.push(newPlayerInGame);
 
@@ -257,13 +267,24 @@ async function handleJoinGame(connection, data) {
 
 function handlePlayerReady(connection, data) {
   // On vérifie si données valides
-  if (!data.playerId || !data.gameId) {
+  if (!data.playerId) {
     sendConnection(connection, {
       type: "playerReadyResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Missing data",
+      reason: "Player ID not found",
+    });
+    return;
+  }
+
+  if (!data.gameId) {
+    sendConnection(connection, {
+      type: "playerReadyResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Game ID not found",
     });
     return;
   }
@@ -310,7 +331,7 @@ function startCountdown(game) {
     sendBroadcast(game, {
       type: "countdown",
       gameId: game.id,
-      value: count,
+      count: count,
     });
     count -= 1;
     if (count < 0) {
@@ -339,52 +360,26 @@ function updateAllPlayerMovements(game) {
 
 async function handlePlayerMovement(connection, data) {
   // On récupère la partie et le joueur
-  try {
-    let game = games.get(data.gameId);
 
-    if (!game || !game.checkPlayerInGame(data.playerId)) {
-      // Le serveur renvoie une erreur si données invalides
-      sendConnection(connection, {
-        type: "playerMovementResponse",
-        playerId: data.playerId,
-        gameId: data.gameId,
-        valid: false,
-        reason: "Player, game or player in game not found",
-      });
+  let game = games.get(data.gameId);
 
-      return;
-    }
+  if (!game || !game.checkPlayerInGame(data.playerId)) {
+    // Le serveur renvoie une erreur si données invalides
+    sendConnection(connection, {
+      type: "playerMovementResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Player, game or player in game not found",
+    });
 
-    let player = game.getPlayer(data.playerId);
-
-    // Mise à jour de la position dans le jeu selon la direction
-    player.moveDirection(data.direction);
-
-    // Vérification de collisions
-    if (game.checkCollision(player)) {
-      // Il y a eu une collision avec le joueur
-      // Le joueur de la connexion actuelle est mort, on met à jour son état alive dans la game
-      player.alive = false;
-
-      // On vérifie combien de joueurs sont vivants
-      if (game.getAliveCount() <= 1) {
-        let winner = game.getWinner();
-        if (winner) {
-          endGame(game, winner.id);
-        } else {
-          // Pas de gagnant : égalité
-          // TODO A revoir, mettre un tableau des derniers joueurs restants avant fin du jeu
-          endGame(game, -1);
-        }
-      }
-    } else {
-      // On met à jour la case de jeu
-      // On la remplit par l'ID du joueur pour identifier par quel joueur chaque case est occupée
-      game.grid[player.x][player.y] = player.id;
-    }
-  } catch (err) {
-    console.log(err);
+    return;
   }
+
+  let player = game.getPlayer(data.playerId);
+
+  // Mise à jour de la position dans le jeu selon la direction
+  player.setDirection(data.direction);
 }
 
 function handleDisconnection(connection) {

@@ -1,24 +1,28 @@
 class Player {
-  constructor(id, x, y) {
+  constructor(id, x, y, currentDirection) {
     this.id = id;
     this.x = x;
     this.y = y;
     this.ready = false;
     this.alive = true;
-    this.currentDirection = null;
+    this.currentDirection = currentDirection;
   }
 
-  moveDirection(direction) {
+  setDirection(direction) {
     if (this.isOppositeDirection(direction)) {
       return;
     }
 
-    switch (direction) {
+    this.currentDirection = direction;
+  }
+
+  move() {
+    switch (this.currentDirection) {
       case "up":
-        this.y += 1;
+        this.y -= 1;
         break;
       case "down":
-        this.y -= 1;
+        this.y += 1;
         break;
       case "left":
         this.x -= 1;
@@ -27,8 +31,6 @@ class Player {
         this.x += 1;
         break;
     }
-
-    this.currentDirection = direction;
   }
 
   isOppositeDirection(newDirection) {
