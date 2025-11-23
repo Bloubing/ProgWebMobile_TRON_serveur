@@ -190,6 +190,17 @@ async function handleJoinGame(connection, data) {
     return;
   }
 
+  if (games.status != "lobby") {
+    sendConnection(connection, {
+      type: "joinGameResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Game has already started",
+    });
+    return;
+  }
+
   let game = games.get(data.gameId);
 
   // Vérifier si le playerId de la requête existe dans la BDD

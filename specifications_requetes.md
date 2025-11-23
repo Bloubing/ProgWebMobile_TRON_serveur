@@ -20,7 +20,11 @@
 
 - fix bug qui fait que la partie demarre meme si pas bon nb de joueurs
 
+- fix bug qui affiche player not found quand on rejoint une game
+
 - ajouter score
+
+- permettre choix couleurs de joeuru
 
 - json schema ?
 
@@ -318,6 +322,24 @@ valid: true,
 
 On arrête le jeu côté serveur.
 
-```
+## Rejouer une partie
+
+Si le joueur souhaite relancer une partie, il envoie au serveur :
 
 ```
+type: "restartGame"
+playerId: String,
+gameId: String
+```
+
+Le serveur reçoit la requête. Si la partie n'est pas terminée, il informe le joueur qu'il faut qu'il attende :
+
+```
+type: "restartGameResponse",
+playerId: String,
+gameId: String,
+valid: false,
+reason : "Game is still running"
+```
+
+Sinon, il laisse le joueur rejoindre la partie.
