@@ -75,12 +75,14 @@ class Game {
 
   checkAllPlayersReady() {
     console.log("ENTRE ALL PLAYERS READY");
+    console.log(this.players.length + " | " + this.maxPlayers);
+    console.log(this.players.length + this.maxPlayers);
 
     // Renvoie vrai si tous les joueurs de la partie sont prêts et que
     // le nombre de joueurs de la partie === maxPlayers
-    // if (this.players.length !== this.maxPlayers) {
-    //   return false;
-    // }
+    if (this.players.length !== this.maxPlayers) {
+      return false;
+    }
 
     console.log("OUI, tout le monde est prêt");
     let allReady = true;

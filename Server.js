@@ -118,8 +118,8 @@ function handleCreateGame(connection, data) {
     !data.creatorId ||
     !data.gameName ||
     !data.maxPlayers ||
-    data.maxPlayers < 2 ||
-    data.maxPlayers > 4
+    Number(data.maxPlayers) < 2 ||
+    Number(data.maxPlayers) > 4
   ) {
     sendConnection(connection, {
       type: "createGameResponse",
@@ -134,7 +134,7 @@ function handleCreateGame(connection, data) {
   const game = new Game(
     data.creatorId,
     data.gameName,
-    data.maxPlayers,
+    Number(data.maxPlayers),
     endGame
   );
 
@@ -158,7 +158,7 @@ function handleCreateGame(connection, data) {
 
 function handleGetAllLobbies(connection) {
   gamesArray = [];
-  //TODO ne push a gamesArray que si le statut est un lobby
+
   for (const game of games.values()) {
     gameItem = {
       gameId: game.id,
@@ -186,17 +186,6 @@ async function handleJoinGame(connection, data) {
       gameId: data.gameId,
       valid: false,
       reason: "Lobby/game doesn't exist",
-    });
-    return;
-  }
-
-  if (games.status != "lobby") {
-    sendConnection(connection, {
-      type: "joinGameResponse",
-      playerId: data.playerId,
-      gameId: data.gameId,
-      valid: false,
-      reason: "Game has already started",
     });
     return;
   }
@@ -238,6 +227,18 @@ async function handleJoinGame(connection, data) {
       gameId: data.gameId,
       valid: false,
       reason: "Lobby/game is full",
+    });
+    return;
+  }
+
+  // Le serveur vérifie que la partie n'a pas encore commencée
+  if (game.status != "lobby") {
+    sendConnection(connection, {
+      type: "joinGameResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Game has already started",
     });
     return;
   }
@@ -302,7 +303,18 @@ function handlePlayerReady(connection, data) {
 
   let game = games.get(data.gameId);
 
-  if (!game || !game.checkPlayerInGame(data.playerId)) {
+  if (!game) {
+    sendConnection(connection, {
+      type: "playerReadyResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Game is null",
+    });
+    return;
+  }
+
+  if (!game.checkPlayerInGame(data.playerId)) {
     sendConnection(connection, {
       type: "playerReadyResponse",
       playerId: data.playerId,
@@ -374,14 +386,27 @@ async function handlePlayerMovement(connection, data) {
 
   let game = games.get(data.gameId);
 
-  if (!game || !game.checkPlayerInGame(data.playerId)) {
+  if (!game) {
     // Le serveur renvoie une erreur si données invalides
     sendConnection(connection, {
       type: "playerMovementResponse",
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player, game or player in game not found",
+      reason: "Game is null",
+    });
+
+    return;
+  }
+
+  if (!game.checkPlayerInGame(data.playerId)) {
+    // Le serveur renvoie une erreur si données invalides
+    sendConnection(connection, {
+      type: "playerMovementResponse",
+      playerId: data.playerId,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Player not found in game",
     });
 
     return;

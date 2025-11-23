@@ -1,10 +1,8 @@
 ## TODO
 
-- PWS : optimiser le broadcast aux joueurs connectés : envoyés que à ceux qui ne sont pas dans une game
+- PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
 - PWS : renvoyer qqch de différent qd nombre de winners > 1
-
-- PWS: décomposer les réponses valid:false qui renvoient plusieurs erreurs en OR pour+ de précision
 
 - PWS : implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 
