@@ -135,7 +135,8 @@ function handleCreateGame(connection, data) {
     data.creatorId,
     data.gameName,
     Number(data.maxPlayers),
-    endGame
+    endGame,
+    data.color // M : ajout param creatorColor
   );
 
   // On ajoute la partie à la liste des parties en cours
@@ -248,13 +249,13 @@ async function handleJoinGame(connection, data) {
   let newPlayerInGame;
   if (game.players.length === 1) {
     // 2e joueur
-    newPlayerInGame = new Player(data.playerId, 0, 25, "right");
+    newPlayerInGame = new Player(data.playerId, 0, 25, "right", data.color);
   } else if (game.players.length === 2) {
     // 3e joueur
-    newPlayerInGame = new Player(data.playerId, 25, 0, "up");
+    newPlayerInGame = new Player(data.playerId, 25, 0, "up", data.color);
   } else if (game.players.length === 3) {
     // 4e joueur
-    newPlayerInGame = new Player(data.playerId, 25, 25, "down");
+    newPlayerInGame = new Player(data.playerId, 25, 25, "down", data.color);
   }
   game.players.push(newPlayerInGame);
 

@@ -1,11 +1,19 @@
 class Player {
-  constructor(id, x, y, currentDirection) {
+  constructor(id, x, y, currentDirection, color = "#00ffff") {
     this.id = id;
     this.x = x;
     this.y = y;
     this.ready = false;
     this.alive = true;
     this.currentDirection = currentDirection;
+    this.color = color;
+  }
+
+  //M : ajout setColor pour changer la couleur du joueur
+  setColor(color) {
+    if (typeof color === 'string' && color.startsWith("#") && color.length === 7) {
+      this.color = color;
+    }
   }
 
   setDirection(direction) {

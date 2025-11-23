@@ -3,7 +3,7 @@ const Player = require("./Player");
 
 // Structure de la game pendant une partie
 class Game {
-  constructor(creatorId, name, maxPlayers, endGame) {
+  constructor(creatorId, name, maxPlayers, endGame, creatorColor = "#00ffff") { // M : ajout param creatorColor
     // Id unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
@@ -18,7 +18,7 @@ class Game {
     // Une game est un lobby lors de sa création
     this.status = "lobby";
     // On commence à remplir le tableau avec le joueur créateur
-    this.players = [new Player(creatorId, this.size / 2, 25, "left")];
+    this.players = [new Player(creatorId, this.size / 2, 25, "left", creatorColor)]; // M : ajout creatorColor
     this.startedAt = Date.now();
     this.interval = null;
     this.endGame = endGame;

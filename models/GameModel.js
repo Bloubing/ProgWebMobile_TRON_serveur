@@ -13,6 +13,7 @@ const gameSchema = new mongoose.Schema({
       ready: Boolean,
       alive: Boolean,
       currentDirection: String,
+      color: String, // M : ajout couleur du joueur
     },
   ], // Tableau des players
   winnerID: Number,
