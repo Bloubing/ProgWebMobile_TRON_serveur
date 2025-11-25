@@ -3,7 +3,8 @@ const Player = require("./Player");
 
 // Structure de la game pendant une partie
 class Game {
-  constructor(creatorId, name, maxPlayers, endGame, creatorColor = "#00ffff") { // M : ajout param creatorColor
+  constructor(creatorId, name, maxPlayers, endGame, creatorColor = "#00ffff") {
+    // M : ajout param creatorColor
     // Id unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
@@ -18,7 +19,9 @@ class Game {
     // Une game est un lobby lors de sa création
     this.status = "lobby";
     // On commence à remplir le tableau avec le joueur créateur
-    this.players = [new Player(creatorId, this.size / 2, 25, "left", creatorColor)]; // M : ajout creatorColor
+    this.players = [
+      new Player(creatorId, this.size / 2, 25, "left", creatorColor),
+    ]; // M : ajout creatorColor
     this.startedAt = Date.now();
     this.interval = null;
     this.endGame = endGame;
@@ -74,17 +77,12 @@ class Game {
   }
 
   checkAllPlayersReady() {
-    console.log("ENTRE ALL PLAYERS READY");
-    console.log(this.players.length + " | " + this.maxPlayers);
-    console.log(this.players.length + this.maxPlayers);
-
     // Renvoie vrai si tous les joueurs de la partie sont prêts et que
     // le nombre de joueurs de la partie === maxPlayers
     if (this.players.length !== this.maxPlayers) {
       return false;
     }
 
-    console.log("OUI, tout le monde est prêt");
     let allReady = true;
     this.players.forEach((player) => {
       if (!player.ready) {

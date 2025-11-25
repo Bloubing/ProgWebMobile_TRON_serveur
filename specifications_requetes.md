@@ -14,11 +14,9 @@
 
 - PWC : mettre un systeme de ready (remplacer le ready automatique temporaire)
 
-- fix bug qui fait que qd on se deco, la game est tjrs en cours
+- **fix bug qui affiche player not found quand on rejoint une game**
 
-- fix bug qui fait que la partie demarre meme si pas bon nb de joueurs
-
-- fix bug qui affiche player not found quand on rejoint une game
+- fix bug taille de la grille pas la meme client/serveur
 
 - ajouter score
 

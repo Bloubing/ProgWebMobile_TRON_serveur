@@ -462,6 +462,11 @@ function handleDisconnection(connection) {
         // on change son état à "mort"
         let playerInGame = game.getPlayer(disconnectedPlayerId);
         playerInGame.alive = false;
+
+        if (game.getAliveCount() === 1) {
+          let winner = game.getWinner();
+          endGame(game, winner.id);
+        }
       }
 
       sendBroadcast(game, {
@@ -469,6 +474,7 @@ function handleDisconnection(connection) {
         playerId: disconnectedPlayerId,
         gameId: game.id,
       });
+      return;
     }
   }
 }
