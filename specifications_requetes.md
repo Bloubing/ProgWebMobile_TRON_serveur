@@ -8,8 +8,6 @@
 
 - PWS : fix positions par défaut 3e et 4e joueurs
 
-- PWC : remplacer les alert par de vrais menus d'erreur
-
 - PWC : faire marcher le restart game
 
 - PWS & PWC : fix bug taille de la grille pas la meme client/serveur
@@ -43,7 +41,7 @@ Le serveur regarde dans la base de données :
   type : "connectionResponse",
   playerId : String,
   valid : false
-  reason : "Invalid password"
+  reason : "Mot de passe invalide"
 }
 ```
 
@@ -118,7 +116,7 @@ Si le client était dans une game, le serveur envoie aux joueurs de la game :
 {
   type : "createGameResponse",
   valid: false,
-  reason: "Missing or invalid data"
+  reason: "Données manquantes ou invalides"
 }
 ```
 
@@ -163,7 +161,7 @@ type : "joinGameResponse",
 playerId : String,
 gameId : String,
 valid: false,
-reason: "Lobby/game is full"
+reason: "Le lobby ou la partie est plein(e)"
 }
 
 ```
@@ -331,7 +329,7 @@ type: "restartGameResponse",
 playerId: String,
 gameId: String,
 valid: false,
-reason : "Game is still running"
+reason : "La partie n'est pas encore terminée"
 ```
 
 Sinon, il laisse le joueur rejoindre la partie.

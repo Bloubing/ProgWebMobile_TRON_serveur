@@ -77,7 +77,7 @@ async function handleConnectionPlayer(connection, data) {
         type: "connectionResponse",
         playerId: player._id,
         valid: false,
-        reason: "Invalid password",
+        reason: "Mot de passe invalide",
       });
       return;
     }
@@ -95,11 +95,6 @@ async function handleConnectionPlayer(connection, data) {
 
     // On stocke la nouvelle connexion dans la liste de connexions
     connections.set(player._id.toString(), connection);
-
-    // console.log("DEBUGGGGGGG");
-    // for (const game of games.values()) {
-    //   console.log(game);
-    // }
 
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
     sendConnection(connection, {
@@ -124,7 +119,7 @@ function handleCreateGame(connection, data) {
     sendConnection(connection, {
       type: "createGameResponse",
       valid: false,
-      reason: "Missing or invalid data",
+      reason: "Données manquantes ou invalides",
     });
     return;
   }
@@ -186,7 +181,7 @@ async function handleJoinGame(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Lobby/game doesn't exist",
+      reason: "Le lobby ou la partie n'existe pas",
     });
     return;
   }
@@ -202,7 +197,7 @@ async function handleJoinGame(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player not found in database",
+      reason: "Le joueur n'existe pas dans la base de données",
     });
     return;
   }
@@ -213,7 +208,7 @@ async function handleJoinGame(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player already in game",
+      reason: "Le joueur est déjà dans la partie",
     });
     return;
   }
@@ -227,7 +222,7 @@ async function handleJoinGame(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Lobby/game is full",
+      reason: "Le lobby ou la partie est plein(e)",
     });
     return;
   }
@@ -239,7 +234,7 @@ async function handleJoinGame(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Game has already started",
+      reason: "La partie a déjà commencé",
     });
     return;
   }
@@ -286,7 +281,7 @@ function handlePlayerReady(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player ID not found",
+      reason: "L'ID du joueur n'existe pas",
     });
     return;
   }
@@ -297,7 +292,7 @@ function handlePlayerReady(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Game ID not found",
+      reason: "L'ID de la partie n'existe pas",
     });
     return;
   }
@@ -310,7 +305,7 @@ function handlePlayerReady(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Game is null",
+      reason: "La partie n'existe pas",
     });
     return;
   }
@@ -321,7 +316,7 @@ function handlePlayerReady(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player not found in game",
+      reason: "Le joueur n'est pas dans la partie",
     });
     return;
   }
@@ -394,7 +389,7 @@ async function handlePlayerMovement(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Game is null",
+      reason: "La partie n'existe pas",
     });
 
     return;
@@ -407,7 +402,7 @@ async function handlePlayerMovement(connection, data) {
       playerId: data.playerId,
       gameId: data.gameId,
       valid: false,
-      reason: "Player not found in game",
+      reason: "Le joueur n'est pas dans la partie",
     });
 
     return;
