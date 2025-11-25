@@ -1,26 +1,22 @@
 ## TODO
 
-- PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
+- PWS : gérer l'égalité (quand 2 joueurs meurent en même temps)
 
 - PWS : renvoyer qqch de différent qd nombre de winners > 1
 
 - PWS : implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 
-- PWC : désactiver le bouton ready quand premiere reponse countdown recue par client
+- PWS : fix positions par défaut 3e et 4e joueurs
 
 - PWC : remplacer les alert par de vrais menus d'erreur
 
 - PWC : faire marcher le restart game
 
-- PWC : mettre un systeme de ready (remplacer le ready automatique temporaire)
+- PWS & PWC : fix bug taille de la grille pas la meme client/serveur
 
-- **fix bug qui affiche player not found quand on rejoint une game**
+- PWS&PWC (optionnel) : ajouter score
 
-- fix bug taille de la grille pas la meme client/serveur
-
-- ajouter score
-
-- permettre choix couleurs de joeuru
+- PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
 - json schema ?
 
