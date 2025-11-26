@@ -18,9 +18,15 @@ class Game {
     this.maxPlayers = maxPlayers;
     // Une game est un lobby lors de sa création
     this.status = "lobby";
-    // On commence à remplir le tableau avec le joueur créateur
+    // On commence à remplir le tableau avec le joueur créateur qui apparaît à gauche
     this.players = [
-      new Player(creatorId, this.size / 2, 25, "left", creatorColor),
+      new Player(
+        creatorId,
+        0,
+        Math.floor(this.size / 2),
+        "right",
+        creatorColor
+      ),
     ]; // M : ajout creatorColor
     this.startedAt = Date.now();
     this.interval = null;

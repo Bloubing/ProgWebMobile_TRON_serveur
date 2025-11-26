@@ -1,22 +1,22 @@
 ## TODO
 
+- fix bug où qqn qui n'est pas dans la partie a une interface comme s'il jouait dans la partie
+
+- PWC&PWS : ajout du leaderboard sur une page à part
+
 - PWS : gérer l'égalité (quand 2 joueurs meurent en même temps)
 
 - PWS : renvoyer qqch de différent qd nombre de winners > 1
 
-- PWS : implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
-
-- PWS : fix positions par défaut 3e et 4e joueurs
-
 - PWC : faire marcher le restart game
 
-- PWS & PWC : fix bug taille de la grille pas la meme client/serveur
+- PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 
 - PWS&PWC (optionnel) : ajouter score
 
 - PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
-- json schema ?
+- json schema
 
 # Déroulé des requêtes-réponses
 

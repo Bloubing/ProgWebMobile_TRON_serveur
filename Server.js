@@ -243,14 +243,32 @@ async function handleJoinGame(connection, data) {
   // tous les clients de l'arrivée du nouveau joueur
   let newPlayerInGame;
   if (game.players.length === 1) {
-    // 2e joueur
-    newPlayerInGame = new Player(data.playerId, 0, 25, "right", data.color);
+    // 2e joueur apparaît à droite
+    newPlayerInGame = new Player(
+      data.playerId,
+      game.size - 1,
+      Math.floor(game.size / 2),
+      "left",
+      data.color
+    );
   } else if (game.players.length === 2) {
-    // 3e joueur
-    newPlayerInGame = new Player(data.playerId, 25, 0, "up", data.color);
+    // 3e joueur apparaît en bas
+    newPlayerInGame = new Player(
+      data.playerId,
+      Math.floor(game.size / 2),
+      game.size - 1,
+      "up",
+      data.color
+    );
   } else if (game.players.length === 3) {
-    // 4e joueur
-    newPlayerInGame = new Player(data.playerId, 25, 25, "down", data.color);
+    // 4e joueur apparaît en haut
+    newPlayerInGame = new Player(
+      data.playerId,
+      Math.floor(game.size / 2),
+      0,
+      "down",
+      data.color
+    );
   }
   game.players.push(newPlayerInGame);
 
