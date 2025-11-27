@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
-const Player = require("../Player");
 
 // Schéma et modèle de Player en BDD
 
 const gameSchema = new mongoose.Schema({
-  generatedGameId: String, // L'id générée lors de la création du jeu != id stockée dans la base
+  generatedGameId: String, // L'ID générée lors de la création du jeu != id stockée dans la base
+  name: String,
   players: [
     {
       id: String,
@@ -15,12 +15,12 @@ const gameSchema = new mongoose.Schema({
       currentDirection: String,
       color: String, // M : ajout couleur du joueur
     },
-  ], // Tableau des players
+  ], // Tableau des joueurs
   winnerID: Number,
   startedAt: Date,
   endedAt: Date,
 });
 
-const gameModel = mongoose.model("GameModel", gameSchema);
+const gameModel = mongoose.model("Game", gameSchema);
 
 module.exports = gameModel;

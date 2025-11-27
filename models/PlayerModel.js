@@ -11,6 +11,6 @@ const playerSchema = new mongoose.Schema({
   losses: Number,
 });
 
-const playerModel = mongoose.model("PlayerModel", playerSchema);
+const playerModel = mongoose.model("Player", playerSchema);
 
 module.exports = playerModel;

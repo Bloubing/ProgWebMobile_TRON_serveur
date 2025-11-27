@@ -58,6 +58,9 @@ wsServer.on("request", function (request) {
         // Partie en cours, le joueur clique sur une des flèches de déplacements
         handlePlayerMovement(connection, data);
         break;
+      case "restartGame":
+        // Un joueur clique sur Rejouer
+        handleRestartGame(connection, data);
     }
   });
 
@@ -121,7 +124,7 @@ function handleCreateGame(connection, data) {
       valid: false,
       reason: "Données manquantes ou invalides",
     });
-    return;
+    return false;
   }
 
   // Le serveur crée un objet Game qui contient liste des joueurs
@@ -150,6 +153,7 @@ function handleCreateGame(connection, data) {
       valid: true,
     });
   }
+  return game.id;
 }
 
 function handleGetAllLobbies(connection) {
@@ -449,7 +453,7 @@ function handleDisconnection(connection) {
   }
 
   for (const game of games.values()) {
-    // Si le joueur est dans une partie
+    // Si le joueur est dans un lobby
     if (game.checkPlayerInGame(disconnectedPlayerId)) {
       if (game.status === "lobby") {
         // Le joueur est dans une partie avec le statut "lobby",
@@ -492,10 +496,79 @@ function handleDisconnection(connection) {
   }
 }
 
+async function handleRestartGame(connection, data) {
+  // On vérifie si la partie est terminée ou non
+  if (games.get(data.gameId)) {
+    // Si elle n'est pas encore terminée, on renvoie une erreur au joueur lui demandant d'attendre
+    sendConnection(connection, {
+      type: "restartGameResponse",
+      valid: false,
+      reason: "La partie n'est pas encore terminée",
+    });
+    return;
+  }
+
+  // Si elle est terminée, on cherche dans la BDD les informations de la partie à partir de son ID
+  // pour recréer une partie avec les mêmes propriétés
+  let dbGame = await gameModel.findOne({ generatedGameId: data.gameId });
+  if (!dbGame) {
+    // Envoyer une erreur si partie pas dans la base de données
+    sendConnection(connection, {
+      type: "restartGameResponse",
+      valid: false,
+      reason: "La partie n'a pas été trouvée",
+    });
+    return;
+  }
+
+  let gameInfos = {
+    creatorId: data.playerId, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
+    gameName: dbGame.name,
+    maxPlayers: dbGame.players.length,
+    color: data.color, // La couleur du joueur ayant cliqué sur Rejouer
+  };
+
+  // On délègue à la fonction qui va créer une partie si les informations sont correctes
+  // On récupère l'ID de la nouvelle partie créé
+  let newGameId = handleCreateGame(connection, gameInfos);
+  if (!newGameId) {
+    sendConnection(connection, {
+      type: "restartGameResponse",
+      valid: false,
+      reason: "Erreur lors de la création de la partie",
+    });
+    return;
+  }
+
+  // On envoie une confirmation que la nouvelle partie a été créée à tous les joueurs de la partie terminée,
+  // pour leur demander s'ils veulent la rejoindre
+
+  // Pour ce faire, on récupère les IDs des joueurs de la partie terminée depuis la base de données
+  for (let player of dbGame.players) {
+    let conn = connections.get(player.id);
+
+    if (!conn) {
+      // Si le  joueur n'est pas connecté, on passe à l'itération suivante
+      continue;
+    }
+
+    let dbPlayer = await playerModel.findOne({ _id: data.playerId });
+
+    sendConnection(conn, {
+      type: "restartGameResponse",
+      gameId: newGameId,
+      playerId: data.playerId,
+      playerName: dbPlayer.username || "Un joueur",
+      valid: true,
+    });
+  }
+}
+
 async function endGame(game, winnerId) {
   // On stocke la partie courante et l'ID du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
+    name: game.name,
     players: game.players,
     winnerId: winnerId,
     startedAt: game.startedAt,

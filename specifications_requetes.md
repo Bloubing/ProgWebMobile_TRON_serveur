@@ -1,6 +1,8 @@
 ## TODO
 
-- fix bug où qqn qui n'est pas dans la partie a une interface comme s'il jouait dans la partie
+- **fix bug où qqn qui n'est pas dans la partie a une interface comme s'il jouait dans la partie**
+
+- **PWS : faire marcher le restart game**
 
 - PWC&PWS : ajout du leaderboard sur une page à part
 
@@ -8,7 +10,11 @@
 
 - PWS : renvoyer qqch de différent qd nombre de winners > 1
 
-- PWC : faire marcher le restart game
+- clean code, homégénéiser PWC et PWS, commenter
+
+- PWC : mettre sur Cordova et tester
+
+- PWC (optionnel) : limiter choix couleurs
 
 - PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 
@@ -96,6 +102,7 @@ Si le client était dans une game, le serveur envoie aux joueurs de la game :
   maxPlayers : Number, // entre 2 et 4
   creatorId : String,
   gameName : String,
+  color: String, // couleur du joueur
 }
 ```
 
@@ -326,10 +333,18 @@ Le serveur reçoit la requête. Si la partie n'est pas terminée, il informe le 
 
 ```
 type: "restartGameResponse",
-playerId: String,
-gameId: String,
 valid: false,
 reason : "La partie n'est pas encore terminée"
 ```
 
 Sinon, il laisse le joueur rejoindre la partie.
+
+Le serveur informe les joueurs de la partie terminée qu'un des joueurs souhaite rejouer:
+
+```
+type: "restartGameResponse",
+gameId: String, // L'ID de la nouvelle partie
+playerId: String, // Le joueur souhaitant rejouer
+playerName: String,
+valid: true,
+```
