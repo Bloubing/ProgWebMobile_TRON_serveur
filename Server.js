@@ -553,7 +553,11 @@ async function handleRestartGame(connection, data) {
     creatorId: data.playerId, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
     gameName: dbGame.name,
     maxPlayers: dbGame.players.length,
-    color: data.color, // La couleur du joueur ayant cliqué sur Rejouer
+    //M : Couleur : on privilégie celle envoyée par le client, sinon on réutilise celle de la partie terminée
+    color:
+      data.color ||
+      dbGame.players.find((p) => p.id === data.playerId)?.color ||
+      "#00ffff", // La couleur du joueur ayant cliqué sur Rejouer
   };
 
   // On délègue à la fonction qui va créer une partie si les informations sont correctes
