@@ -11,12 +11,17 @@ class Player {
 
   //M : ajout setColor pour changer la couleur du joueur
   setColor(color) {
-    if (typeof color === 'string' && color.startsWith("#") && color.length === 7) {
+    if (
+      typeof color === "string" &&
+      color.startsWith("#") &&
+      color.length === 7
+    ) {
       this.color = color;
     }
   }
 
   setDirection(direction) {
+    // On empêche le joueur de faire demi-tour
     if (this.isOppositeDirection(direction)) {
       return;
     }
@@ -41,6 +46,7 @@ class Player {
     }
   }
 
+  // Fonction utilitaire
   isOppositeDirection(newDirection) {
     if (this.currentDirection === "up" && newDirection === "down") return true;
     if (this.currentDirection === "down" && newDirection === "up") return true;

@@ -1,20 +1,17 @@
 const crypto = require("crypto");
 const Player = require("./Player");
 
-// Structure de la game pendant une partie
 class Game {
   constructor(creatorId, name, maxPlayers, endGame, creatorColor = "#00ffff") {
-    // M : ajout param creatorColor
-    // Id unique pour la game
+    // ID unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
     // On part du principe que l'aire de jeu est carrée : 100*100
     this.size = 100;
-    // Génération d'une aire size*size
+    // Génération d'une grille vide de taille size*size
     this.grid = Array.from({ length: this.size }, () =>
       Array(this.size).fill(null)
     );
-
     this.maxPlayers = maxPlayers;
     // Une game est un lobby lors de sa création
     this.status = "lobby";
@@ -27,28 +24,29 @@ class Game {
         "right",
         creatorColor
       ),
-    ]; // M : ajout creatorColor
+    ];
     this.startedAt = Date.now();
     this.interval = null;
+    // Permet d'utiliser la fonction endGame dans Server.js
     this.endGame = endGame;
   }
 
-  start(func, parameter) {
+  start(updateAllPlayerMovements, game) {
     if (this.interval) {
-      // empêcher de lancer une autre intervalle si une déjà existante
+      // On empêche le lancement d'une autre intervalle si une déjà existante
       return;
     }
-    // Change le statut de la game en "game" pour désactiver la réapparition des joueurs
+    // On change le statut de la partie en "game" pour désactiver la réapparition des joueurs
     this.status = "game";
     // Lancer un intervalle de updateAllPlayerMovements
     this.interval = setInterval(() => {
       this.update();
-      func(parameter);
+      updateAllPlayerMovements(game);
     }, 1000);
   }
 
   stop() {
-    // Stopper l'intervalle
+    // Fin de partie, on stoppe l'intervalle
     if (this.interval) {
       clearInterval(this.interval);
     }
@@ -56,12 +54,13 @@ class Game {
 
   update() {
     for (const player of this.players) {
+      // On ne met pas à jour si le joueur est mort
       if (!player.alive) continue;
 
-      // Faire avancer joueur
+      // Faire avancer le joueur
       player.move();
 
-      // Check collision
+      // Vérifier s'il y a une collision après avoir déplacé le joueur
       if (this.checkCollision(player)) {
         player.alive = false;
       }
@@ -71,6 +70,7 @@ class Game {
         this.grid[player.x][player.y] = player.id;
       }
     }
+
     // On fait la vérification à chaque intervalle et pas au moment où un joueur meurt
     // pour gérer les cas où des joueurs meurent en même temps
     if (this.getAliveCount() <= 1) {
@@ -116,13 +116,13 @@ class Game {
       }
     });
 
-    // renvoie l'unique vainqueur
+    // Renvoie l'unique vainqueur
     // sinon renvoie "no_winner" quand 0 winner ou + d'1 winner
     return winners.length === 1 ? winners[0] : "no_winner";
   }
 
   checkCollision(player) {
-    // check collision hors-grille
+    // Vérifier une collision hors-grille
     if (
       player.x < 0 ||
       player.x >= this.size ||
@@ -131,7 +131,7 @@ class Game {
     ) {
       return true;
     }
-    // check si la case est déjà occupée par un autre joueur
+    // Vérifier une collision avec un autre joueur
     if (this.grid[player.x][player.y] != null) {
       return true;
     }

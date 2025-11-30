@@ -3,19 +3,15 @@ const mongoose = require("mongoose");
 // Schéma et modèle de Player en BDD
 
 const gameSchema = new mongoose.Schema({
-  generatedGameId: String, // L'ID générée lors de la création du jeu != id stockée dans la base
+  // L'ID générée lors de la création du jeu != id stockée dans la base
+  generatedGameId: String,
   name: String,
   players: [
     {
       id: String,
-      x: Number,
-      y: Number,
-      ready: Boolean,
-      alive: Boolean,
-      currentDirection: String,
-      color: String, // M : ajout couleur du joueur
+      color: String,
     },
-  ], // Tableau des joueurs
+  ],
   winnerID: Number,
   startedAt: Date,
   endedAt: Date,

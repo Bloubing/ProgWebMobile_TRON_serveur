@@ -1,10 +1,10 @@
 ## TODO
 
-- **PWC&PWS : ajout du leaderboard sur une page à part**
+- **clean code (remplacer playerId par name et gameId par la connection elle-même), homégénéiser PWC et PWS, commenter PWC**
+
+- PWC : empecher envoi de requetes si on appuie sur la meme direction
 
 - fix bug reset couleur joueur qd rejouer
-
-- clean code (envoyer que nécessaire dans requetes, par ex pas de playerid pcq on a acces à la connexion, remplacer playerId par name et gameId par la connection elle-même), homégénéiser PWC et PWS, commenter
 
 - PWC : mettre sur Cordova et tester
 
@@ -102,7 +102,7 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 
   // Player
   {
-    name: String,
+    username: String,
     wins: Number,
     losses: Number,
   }
@@ -164,7 +164,6 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 ```
 {
   type: "getAllLobbies",
-  playerId: String
 }
 ```
 
@@ -326,11 +325,7 @@ players : Array[Player],
 // Player
 {
 id : Number,
-x : Number,
-y : Number,
-alive : Boolean,
-ready : Boolean;
-currentDirection : String,
+color: String,
 }
 
 ```
