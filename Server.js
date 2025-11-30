@@ -552,7 +552,8 @@ async function handleRestartGame(connection, data) {
     //M : Couleur : on privilégie celle envoyée par le client, sinon on réutilise celle de la partie terminée
     color:
       data.color ||
-      dbGame.players.find((p) => p.id === data.playerId)?.color ||
+      dbGame.players.find((player) => player.username === data.username)
+        ?.color ||
       "#00ffff", // La couleur du joueur ayant cliqué sur Rejouer
   };
 
