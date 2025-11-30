@@ -2,7 +2,7 @@
 
 - **PWC&PWS : ajout du leaderboard sur une page à part**
 
-- fix bug reset couleur joueur qd rejouer
+- fix bug reset couleur joueur qd rejouer -- fait, verif car amelioration?
 
 - clean code (envoyer que nécessaire dans requetes, par ex pas de playerid pcq on a acces à la connexion, remplacer playerId par name et gameId par la connection elle-même), homégénéiser PWC et PWS, commenter
 
