@@ -2,7 +2,13 @@ const crypto = require("crypto");
 const Player = require("./Player");
 
 class Game {
-  constructor(creatorId, name, maxPlayers, endGame, creatorColor = "#00ffff") {
+  constructor(
+    creatorName,
+    name,
+    maxPlayers,
+    endGame,
+    creatorColor = "#00ffff"
+  ) {
     // ID unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
@@ -18,7 +24,7 @@ class Game {
     // On commence à remplir le tableau avec le joueur créateur qui apparaît à gauche
     this.players = [
       new Player(
-        creatorId,
+        creatorName,
         0,
         Math.floor(this.size / 2),
         "right",
@@ -67,7 +73,7 @@ class Game {
 
       if (player.alive) {
         // Marquer la case comme occupée
-        this.grid[player.x][player.y] = player.id;
+        this.grid[player.x][player.y] = player.username;
       }
     }
 
@@ -75,7 +81,7 @@ class Game {
     // pour gérer les cas où des joueurs meurent en même temps
     if (this.getAliveCount() <= 1) {
       let winner = this.getWinner();
-      this.endGame(this, winner.id);
+      this.endGame(this, winner.username);
       return;
     }
   }
@@ -100,12 +106,12 @@ class Game {
     return allReady;
   }
 
-  checkPlayerInGame(playerId) {
-    return this.players.some((player) => player.id === playerId);
+  checkPlayerInGame(playerName) {
+    return this.players.some((player) => player.username === playerName);
   }
 
-  getPlayer(playerId) {
-    return this.players.find((player) => player.id === playerId);
+  getPlayer(playerName) {
+    return this.players.find((player) => player.username === playerName);
   }
 
   getWinner() {

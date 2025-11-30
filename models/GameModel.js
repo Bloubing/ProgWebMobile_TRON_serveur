@@ -9,10 +9,11 @@ const gameSchema = new mongoose.Schema({
   players: [
     {
       id: String,
+      username: String,
       color: String,
     },
   ],
-  winnerID: Number,
+  winnerName: String,
   startedAt: Date,
   endedAt: Date,
 });

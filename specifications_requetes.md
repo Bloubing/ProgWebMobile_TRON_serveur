@@ -37,7 +37,7 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
-  playerId : String,
+  username : String,
   valid : false
   reason : "Mot de passe invalide"
 }
@@ -48,7 +48,7 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
-  playerId : String,
+  username : String,
   valid : true
 }
 ```
@@ -58,7 +58,7 @@ Le serveur regarde dans la base de données :
 ```
 {
   type : "connectionResponse",
-  playerId : String,
+  username : String,
   valid : true
 }
 ```
@@ -69,7 +69,7 @@ Si le client se déconnecte et qu'il était dans un lobby, le serveur enlève le
 
 ```
 type: "updateLobbyInfos",
-gameId: game.id,
+gameId: String,
 ```
 
 Si le client était dans une game, le serveur envoie aux joueurs de la game :
@@ -77,7 +77,7 @@ Si le client était dans une game, le serveur envoie aux joueurs de la game :
 ```
 {
   type: "playerDisconnected",
-  playerId: String,
+  disconnectedUsername: String,
   gameId: String,
 }
 ```
@@ -109,17 +109,6 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 }
 ```
 
-- S'il y a eu une erreur, le serveur renvoie :
-
-```
-{
-  type: "getLeaderboardResponse",
-  players: Array[Player]
-  valid: false
-  reason: String
-}
-```
-
 ## Avant la Game
 
 ### Création de lobby
@@ -130,7 +119,7 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 {
   type : "createGame",
   maxPlayers : Number, // entre 2 et 4
-  creatorId : String,
+  creatorName : String,
   gameName : String,
   color: String, // couleur du joueur
 }
@@ -142,7 +131,7 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 {
   type : "createGameResponse",
   gameId : String,
-  creatorId: String,
+  creatorName: String,
   valid: true,
 }
 ```
@@ -182,8 +171,9 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 
 {
 type : "joinGame",
-playerId : String,
+username : String,
 gameToJoinId : String,
+color: String,
 }
 
 ```
@@ -194,7 +184,7 @@ gameToJoinId : String,
 
 {
 type : "joinGameResponse",
-playerId : String,
+username : String,
 gameId : String,
 valid: false,
 reason: "Le lobby ou la partie est plein(e)"
@@ -210,7 +200,6 @@ reason: "Le lobby ou la partie est plein(e)"
 
 {
 type : "joinGameResponse",
-newPlayerId : String,
 newPlayerUsername: String,
 gameId : String,
 valid: true,
@@ -226,7 +215,7 @@ valid: true,
 
 {
 type : "playerReady",
-playerId : String,
+username : String,
 gameId : String,
 ready : Boolean,
 }
@@ -238,11 +227,11 @@ ready : Boolean,
 ```
 
 {
-type: "playerReadyResponse",
-playerId: String,
-gameId: String,
-valid: false,
-reason: String,
+type : "playerReadyResponse",
+username : String,
+gameId : String,
+valid : false,
+reason : String,
 }
 
 ```
@@ -250,14 +239,12 @@ reason: String,
 - S'il n'y a pas d'erreur et que le statut "Ready" du joueur a bien été pris en compte, le serveur confirme :
 
 ```
-
 {
 type: "playerReadyResponse",
-playerId: String,
+username: String,
 gameId: String,
 valid: true,
 }
-
 ```
 
 - Le serveur démarre lobby quand tous les clients ont envoyé "Ready". Il commence par envoyer aux clients un décompte :
@@ -291,7 +278,7 @@ Client envoie au serveur :
 
 {
 type : "playerMovement",
-playerId : String,
+username : String,
 gameId : String,
 direction: String, // "up", "down", "left", "right"
 }
@@ -304,7 +291,7 @@ S'il y a eu une erreur, le serveur répond :
 
 {
 type : "playerMovementResponse",
-playerId : String,
+username : String,
 gameId : String,
 valid: false,
 reason: String,
@@ -324,7 +311,7 @@ players : Array[Player],
 
 // Player
 {
-id : Number,
+username : String,
 color: String,
 }
 
@@ -336,7 +323,7 @@ S'il ne reste qu'un joueur en vie, le serveur déclenche la fin de la partie et 
 
 {
 type: "endGame",
-winnerId: String,
+winnerName: String,
 valid: true,
 }
 
@@ -346,12 +333,13 @@ On arrête le jeu côté serveur.
 
 ## Rejouer une partie
 
-Si le joueur souhaite relancer une partie, il envoie au serveur :
+Si le client souhaite relancer une partie, il envoie au serveur :
 
 ```
 type: "restartGame"
-playerId: String,
-gameId: String
+username: String,
+gameId: String,
+color: String
 ```
 
 Le serveur reçoit la requête. Si la partie n'est pas terminée, il informe le joueur qu'il faut qu'il attende :
@@ -369,7 +357,6 @@ Le serveur informe les joueurs de la partie terminée qu'un des joueurs souhaite
 ```
 type: "restartGameResponse",
 gameId: String, // L'ID de la nouvelle partie
-playerId: String, // Le joueur souhaitant rejouer
-playerName: String,
+restartName : String, // Le joueur souhaitant rejouer
 valid: true,
 ```

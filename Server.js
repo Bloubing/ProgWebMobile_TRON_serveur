@@ -23,7 +23,7 @@ const Player = require("./Player");
 // Liste des games en cours : associe gameId (clé) et game (valeur)
 var games = new Map();
 
-// Liste des connexions en cours : associe playerId (clé) et connexion (valeur)
+// Liste des connexions en cours : associe nom de joueur (clé) et connexion (valeur)
 var connections = new Map();
 
 wsServer.on("request", function (request) {
@@ -83,7 +83,7 @@ async function handleConnectionPlayer(connection, data) {
     if (player && data.password !== player.password) {
       sendConnection(connection, {
         type: "connectionResponse",
-        playerId: player._id,
+        username: player.username,
         valid: false,
         reason: "Mot de passe invalide",
       });
@@ -102,12 +102,12 @@ async function handleConnectionPlayer(connection, data) {
     }
 
     // On stocke la nouvelle connexion dans la liste de connexions
-    connections.set(player._id.toString(), connection);
+    connections.set(player.username, connection);
 
     // On renvoie une réponse valide si MDP correct ou création d'un nouveau joueur
     sendConnection(connection, {
       type: "connectionResponse",
-      playerId: player._id,
+      username: player.username,
       valid: true,
     });
   } catch (err) {
@@ -169,7 +169,7 @@ function handleGetAllLobbies(connection) {
 function handleCreateGame(connection, data) {
   // On vérifie si les données sont valides
   if (
-    !data.creatorId ||
+    !data.creatorName ||
     !data.gameName ||
     !data.maxPlayers ||
     Number(data.maxPlayers) < 2 ||
@@ -185,7 +185,7 @@ function handleCreateGame(connection, data) {
 
   // Le serveur crée un objet Game qui contient la liste des joueurs
   const game = new Game(
-    data.creatorId,
+    data.creatorName,
     data.gameName,
     Number(data.maxPlayers),
     endGame,
@@ -200,7 +200,7 @@ function handleCreateGame(connection, data) {
   sendBroadcast({
     type: "createGameResponse",
     gameId: game.id,
-    creatorId: data.creatorId,
+    creatorName: data.creatorName,
     valid: true,
   });
 
@@ -211,7 +211,7 @@ async function handleJoinGame(connection, data) {
   if (!games.has(data.gameId)) {
     sendConnection(connection, {
       type: "joinGameResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le lobby n'existe pas",
@@ -222,12 +222,12 @@ async function handleJoinGame(connection, data) {
   let game = games.get(data.gameId);
 
   // Vérifier si le playerId de la requête existe dans la base
-  let player = await playerModel.findOne({ _id: data.playerId });
+  let player = await playerModel.findOne({ username: data.username });
 
   if (!player) {
     sendConnection(connection, {
       type: "joinGameResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le joueur n'existe pas dans la base de données",
@@ -235,10 +235,10 @@ async function handleJoinGame(connection, data) {
     return;
   }
 
-  if (game.checkPlayerInGame(data.playerId)) {
+  if (game.checkPlayerInGame(data.username)) {
     sendConnection(connection, {
       type: "joinGameResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le joueur est déjà dans la partie",
@@ -250,7 +250,7 @@ async function handleJoinGame(connection, data) {
   if (game.players.length >= game.maxPlayers) {
     sendConnection(connection, {
       type: "joinGameResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le lobby ou la partie est plein(e)",
@@ -262,7 +262,7 @@ async function handleJoinGame(connection, data) {
   if (game.status != "lobby") {
     sendConnection(connection, {
       type: "joinGameResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "La partie a déjà commencé",
@@ -278,7 +278,7 @@ async function handleJoinGame(connection, data) {
   if (game.players.length === 1) {
     // 2e joueur apparaît à droite
     newPlayerInGame = new Player(
-      data.playerId,
+      data.username,
       game.size - 1,
       Math.floor(game.size / 2),
       "left",
@@ -287,7 +287,7 @@ async function handleJoinGame(connection, data) {
   } else if (game.players.length === 2) {
     // 3e joueur apparaît en bas
     newPlayerInGame = new Player(
-      data.playerId,
+      data.username,
       Math.floor(game.size / 2),
       game.size - 1,
       "up",
@@ -296,7 +296,7 @@ async function handleJoinGame(connection, data) {
   } else if (game.players.length === 3) {
     // 4e joueur apparaît en haut
     newPlayerInGame = new Player(
-      data.playerId,
+      data.username,
       Math.floor(game.size / 2),
       0,
       "down",
@@ -314,7 +314,6 @@ async function handleJoinGame(connection, data) {
   // On informe tous les joueurs de la partie de l'arrivée du nouveau joueur
   sendPlayersInGame(game, {
     type: "joinGameResponse",
-    newPlayerId: data.playerId,
     newPlayerUsername: player.username,
     gameId: data.gameId,
     valid: true,
@@ -323,13 +322,13 @@ async function handleJoinGame(connection, data) {
 
 function handlePlayerReady(connection, data) {
   // On vérifie si les données sont valides
-  if (!data.playerId) {
+  if (!data.username) {
     sendConnection(connection, {
       type: "playerReadyResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
-      reason: "L'ID du joueur n'existe pas",
+      reason: "Le joueur n'existe pas",
     });
     return;
   }
@@ -337,7 +336,7 @@ function handlePlayerReady(connection, data) {
   if (!data.gameId) {
     sendConnection(connection, {
       type: "playerReadyResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "L'ID de la partie n'existe pas",
@@ -350,7 +349,7 @@ function handlePlayerReady(connection, data) {
   if (!game) {
     sendConnection(connection, {
       type: "playerReadyResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "La partie n'existe pas",
@@ -358,10 +357,10 @@ function handlePlayerReady(connection, data) {
     return;
   }
 
-  if (!game.checkPlayerInGame(data.playerId)) {
+  if (!game.checkPlayerInGame(data.username)) {
     sendConnection(connection, {
       type: "playerReadyResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le joueur n'est pas dans la partie",
@@ -369,7 +368,7 @@ function handlePlayerReady(connection, data) {
     return;
   }
 
-  let player = game.getPlayer(data.playerId);
+  let player = game.getPlayer(data.username);
 
   // Si le joueur était déjà prêt : pas besoin de renvoyer un paquet de confirmation
   if (player.ready) {
@@ -381,7 +380,7 @@ function handlePlayerReady(connection, data) {
   // Le serveur confirme au client que le statut "Prêt" a bien été changé
   sendConnection(connection, {
     type: "playerReadyResponse",
-    playerId: data.playerId,
+    username: data.username,
     gameId: data.gameId,
     valid: true,
   });
@@ -435,7 +434,7 @@ async function handlePlayerMovement(connection, data) {
     // Le serveur renvoie une erreur si données invalides
     sendConnection(connection, {
       type: "playerMovementResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "La partie n'existe pas",
@@ -444,11 +443,11 @@ async function handlePlayerMovement(connection, data) {
     return;
   }
 
-  if (!game.checkPlayerInGame(data.playerId)) {
+  if (!game.checkPlayerInGame(data.username)) {
     // Le serveur renvoie une erreur si données invalides
     sendConnection(connection, {
       type: "playerMovementResponse",
-      playerId: data.playerId,
+      username: data.username,
       gameId: data.gameId,
       valid: false,
       reason: "Le joueur n'est pas dans la partie",
@@ -457,34 +456,34 @@ async function handlePlayerMovement(connection, data) {
     return;
   }
 
-  let player = game.getPlayer(data.playerId);
+  let player = game.getPlayer(data.username);
 
   // Mise à jour de la position du joueur selon la direction
   player.setDirection(data.direction);
 }
 
 function handleDisconnection(connection) {
-  let disconnectedPlayerId = null;
+  let disconnectedPlayerName = null;
 
   // On récupère l'ID du joueur déconnecté
-  for (const [playerId, conn] of connections.entries()) {
+  for (const [playerName, conn] of connections.entries()) {
     if (conn === connection) {
-      disconnectedPlayerId = playerId;
-      connections.delete(playerId);
+      disconnectedPlayerName = playerName;
+      connections.delete(playerName);
       break;
     }
   }
 
-  if (!disconnectedPlayerId) {
+  if (!disconnectedPlayerName) {
     return;
   }
 
   for (const game of games.values()) {
-    if (game.checkPlayerInGame(disconnectedPlayerId)) {
+    if (game.checkPlayerInGame(disconnectedPlayerName)) {
       if (game.status === "lobby") {
         // Si le joueur est dans un lobby, on le retire de la liste des joueurs
         game.players = game.players.filter(
-          (player) => player.id !== disconnectedPlayerId
+          (player) => player.username !== disconnectedPlayerName
         );
 
         // Si le lobby est maintenant vide, on supprime le lobby
@@ -499,20 +498,20 @@ function handleDisconnection(connection) {
         });
       } else {
         // Le joueur est dans une partie, on change son état à "mort"
-        let playerInGame = game.getPlayer(disconnectedPlayerId);
+        let playerInGame = game.getPlayer(disconnectedPlayerName);
         playerInGame.alive = false;
 
         // S'il ne reste maintenant qu'un joueur en vie, il gagne la partie et la termine
         if (game.getAliveCount() === 1) {
           let winner = game.getWinner();
-          endGame(game, winner.id);
+          endGame(game, winner.username);
         }
       }
 
       // On informe les joueurs de la partie de la déconnexion du joueur
       sendPlayersInGame(game, {
         type: "playerDisconnected",
-        playerId: disconnectedPlayerId,
+        disconnectedUsername: disconnectedPlayerName,
         gameId: game.id,
       });
       return;
@@ -544,9 +543,10 @@ async function handleRestartGame(connection, data) {
     });
     return;
   }
+  console.log("arrivé là");
 
   let gameInfos = {
-    creatorId: data.playerId, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
+    creatorName: data.username, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
     gameName: dbGame.name,
     maxPlayers: dbGame.players.length,
     color: data.color, // La couleur du joueur ayant cliqué sur Rejouer
@@ -569,43 +569,41 @@ async function handleRestartGame(connection, data) {
 
   // Pour ce faire, on récupère les IDs des joueurs de la partie terminée depuis la base de données
   for (let player of dbGame.players) {
-    let conn = connections.get(player.id);
-
+    let conn = connections.get(player.username);
+    console.log("on essaie d'envoyer à " + player.username);
     if (!conn) {
       // Si le  joueur n'est pas connecté, on passe à l'itération suivante
       continue;
     }
-
-    let dbPlayer = await playerModel.findOne({ _id: data.playerId });
+    console.log("Envoyé");
+    let dbPlayer = await playerModel.findOne({ username: data.username });
 
     sendConnection(conn, {
       type: "restartGameResponse",
       gameId: newGameId,
-      playerId: data.playerId,
-      playerName: dbPlayer.username || "Joueur",
+      restartName: data.username,
       valid: true,
     });
   }
 }
 
-async function endGame(game, winnerId) {
+async function endGame(game, winnerName) {
   // On parcourt game.players pour n'extraire que les propriétés à sauvegarder en base de données
   let playersData = [];
   for (let player of game.players) {
     let currentPlayer = {
-      id: player.id,
       username: player.username,
       color: player.color,
     };
     playersData.push(currentPlayer);
   }
-
+  console.log("playerData : " + playersData);
   // On stocke la partie courante et l'ID du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
     name: game.name,
     players: playersData,
-    winnerId: winnerId,
+    winnerName: winnerName,
     startedAt: game.startedAt,
     endedAt: Date.now(),
   });
@@ -617,19 +615,21 @@ async function endGame(game, winnerId) {
 
     // +1 victoire si le joueur === gagnant, sinon +1 défaite
     await playerModel.updateOne(
-      { _id: player.id },
-      winnerId === player.id ? { $inc: { wins: 1 } } : { $inc: { losses: 1 } }
+      { username: player.username },
+      winnerName === player.username
+        ? { $inc: { wins: 1 } }
+        : { $inc: { losses: 1 } }
     );
 
     // Broadcast de fin de partie
     // On envoie l'ID du gagnant à tous les joueurs
     // Le client affiche "Gagné" si l'ID du joueur === l'ID du gagnant, "Perdu" sinon
-    let connection = connections.get(player.id);
+    let connection = connections.get(player.username);
 
     if (connection) {
       sendConnection(connection, {
         type: "endGame",
-        winnerId: winnerId,
+        winnerName: winnerName,
         valid: true,
       });
     }
@@ -649,7 +649,7 @@ function sendConnection(connection, data) {
 // Broadcast de partie
 function sendPlayersInGame(game, data) {
   game.players.forEach((player) => {
-    let connection = connections.get(player.id);
+    let connection = connections.get(player.username);
 
     // On vérifie si le joueur est toujours connecté
     //  et on envoie le paquet si oui

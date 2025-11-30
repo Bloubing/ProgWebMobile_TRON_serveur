@@ -1,6 +1,6 @@
 class Player {
-  constructor(id, x, y, currentDirection, color = "#00ffff") {
-    this.id = id;
+  constructor(username, x, y, currentDirection, color = "#00ffff") {
+    this.username = username;
     this.x = x;
     this.y = y;
     this.ready = false;
