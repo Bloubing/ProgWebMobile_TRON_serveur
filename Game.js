@@ -64,17 +64,17 @@ class Game {
       // Check collision
       if (this.checkCollision(player)) {
         player.alive = false;
-
-        if (this.getAliveCount() <= 1) {
-          let winner = this.getWinner();
-          this.endGame(this, winner.id);
-          return;
-        }
-        continue;
       }
 
       // Marquer la case comme occupée
       this.grid[player.x][player.y] = player.id;
+    }
+    // On fait la vérification à chaque intervalle et pas au moment où un joueur meurt
+    // pour gérer les cas où des joueurs meurent en même temps
+    if (this.getAliveCount() <= 1) {
+      let winner = this.getWinner();
+      this.endGame(this, winner.id);
+      return;
     }
   }
 

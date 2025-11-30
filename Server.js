@@ -587,6 +587,8 @@ async function endGame(game, winnerId) {
     );
 
     // Broadcast de fin de partie
+    // On envoie l'ID du gagnant à tous les joueurs
+    // Le client affiche "Gagné" si l'ID du joueur === l'ID du gagnant, "Perdu" sinon
     let connection = connections.get(player.id);
 
     if (connection) {

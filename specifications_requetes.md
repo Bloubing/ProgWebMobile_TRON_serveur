@@ -1,28 +1,18 @@
 ## TODO
 
-- **fix bug où qqn qui n'est pas dans la partie a une interface comme s'il jouait dans la partie**
-
-- **PWS : faire marcher le restart game**
-
-- PWC&PWS : ajout du leaderboard sur une page à part
-
-- PWS : gérer l'égalité (quand 2 joueurs meurent en même temps)
-
-- PWS : renvoyer qqch de différent qd nombre de winners > 1
+- **PWC&PWS : ajout du leaderboard sur une page à part**
 
 - clean code, homégénéiser PWC et PWS, commenter
 
 - PWC : mettre sur Cordova et tester
 
-- PWC (optionnel) : limiter choix couleurs
-
 - PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
-
-- PWS&PWC (optionnel) : ajouter score
 
 - PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
-- json schema
+- PWS&PWC (très optionnel) : ajouter score -> si on fait pas, enlever score sur PWC
+
+- PWC (très optionnel) : limiter choix couleurs
 
 # Déroulé des requêtes-réponses
 
