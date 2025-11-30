@@ -4,7 +4,7 @@
 
 - PWC : empecher envoi de requetes si on appuie sur la meme direction
 
-- fix bug reset couleur joueur qd rejouer
+- fix bug reset couleur joueur qd rejouer -- fait, verif car amelioration?
 
 - PWC : mettre sur Cordova et tester
 
