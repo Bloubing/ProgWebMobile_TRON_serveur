@@ -38,6 +38,8 @@ wsServer.on("request", function (request) {
         // Un joueur tente de se connecter/ s'inscrire
         handleConnectionPlayer(connection, data);
         break;
+      case "getLeaderboard":
+        handleGetLeaderboard(connection);
       case "createGame":
         // Un joueur crée un nouveau lobby
         // Un lobby === une game, seul le statut change
@@ -160,7 +162,7 @@ function handleGetAllLobbies(connection) {
   gamesArray = [];
 
   for (const game of games.values()) {
-    gameItem = {
+    let gameItem = {
       gameId: game.id,
       gameName: game.name,
       maxPlayers: game.maxPlayers,
@@ -173,6 +175,32 @@ function handleGetAllLobbies(connection) {
   sendConnection(connection, {
     type: "getAllLobbiesResponse",
     lobbies: gamesArray,
+  });
+  return;
+}
+
+async function handleGetLeaderboard(connection) {
+  let playersArray = [];
+
+  let topFivePlayers = await playerModel
+    .find({})
+    .sort({ wins: "desc" })
+    .limit(5);
+
+  for (const player of topFivePlayers) {
+    let playerStats = {
+      username: player.username,
+      wins: player.wins,
+      losses: player.losses,
+    };
+
+    playersArray.push(playerStats);
+  }
+
+  sendConnection(connection, {
+    type: "getLeaderboardResponse",
+    players: playersArray,
+    valid: true,
   });
   return;
 }

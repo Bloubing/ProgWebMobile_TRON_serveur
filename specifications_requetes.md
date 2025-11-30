@@ -4,7 +4,7 @@
 
 - fix bug reset couleur joueur qd rejouer
 
-- clean code, homégénéiser PWC et PWS, commenter
+- clean code (envoyer que nécessaire dans requetes, par ex pas de playerid pcq on a acces à la connexion, remplacer playerId par name et gameId par la connection elle-même), homégénéiser PWC et PWS, commenter
 
 - PWC : mettre sur Cordova et tester
 
@@ -79,6 +79,44 @@ Si le client était dans une game, le serveur envoie aux joueurs de la game :
   type: "playerDisconnected",
   playerId: String,
   gameId: String,
+}
+```
+
+## Classement
+
+- Le client clique sur le bouton "Classement" et envoie une requête au serveur :
+
+```
+{
+  type: "getLeaderboard",
+}
+```
+
+Le serveur fait une requête à la base de données pour obtenir les 5 joueurs avec le plus de victoires et envoie au client :
+
+```
+{
+  type: "getLeaderboardResponse",
+  players: Array[Player]
+  valid: true
+
+  // Player
+  {
+    name: String,
+    wins: Number,
+    losses: Number,
+  }
+}
+```
+
+- S'il y a eu une erreur, le serveur renvoie :
+
+```
+{
+  type: "getLeaderboardResponse",
+  players: Array[Player]
+  valid: false
+  reason: String
 }
 ```
 
