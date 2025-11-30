@@ -2,6 +2,8 @@
 
 - **PWC&PWS : ajout du leaderboard sur une page à part**
 
+- fix bug reset couleur joueur qd rejouer
+
 - clean code, homégénéiser PWC et PWS, commenter
 
 - PWC : mettre sur Cordova et tester

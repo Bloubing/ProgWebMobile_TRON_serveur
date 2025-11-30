@@ -66,8 +66,10 @@ class Game {
         player.alive = false;
       }
 
-      // Marquer la case comme occupée
-      this.grid[player.x][player.y] = player.id;
+      if (player.alive) {
+        // Marquer la case comme occupée
+        this.grid[player.x][player.y] = player.id;
+      }
     }
     // On fait la vérification à chaque intervalle et pas au moment où un joueur meurt
     // pour gérer les cas où des joueurs meurent en même temps
