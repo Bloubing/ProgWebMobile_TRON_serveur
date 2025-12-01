@@ -362,3 +362,34 @@ gameId: String, // L'ID de la nouvelle partie
 restartName : String, // Le joueur souhaitant rejouer
 valid: true,
 ```
+
+## Quitter une partie
+
+Le client clique sur "Quitter", il envoie au serveur :
+
+```
+{
+  type: "leaveLobby"
+  username : String
+  gameId : String
+}
+```
+
+Le serveur enlève le client du lobby et informe en broadcast tous les joueurs connectés pour mettre à jour la liste des lobbies :
+
+```
+type: "updateLobbyInfos",
+gameId: String,
+```
+
+Le serveur fait un retour au client, avec un valid soit `true`, soit `false`, en fonction de la validité des données envoyées :
+
+```
+{
+  type: "leaveLobbyResponse",
+  username: String,
+  gameId: String,
+  valid: true,
+}
+
+```

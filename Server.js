@@ -54,6 +54,9 @@ wsServer.on("request", function (request) {
         // Un joueur clique sur rejoindre un lobby
         handleJoinGame(connection, data);
         break;
+      case "leaveLobby":
+        // Un joueur clique sur Quitter dans un lobby
+        handleLeaveLobby(connection, data);
       case "playerReady":
         // Un joueur clique sur Prêt dans un lobby
         handlePlayerReady(connection, data);
@@ -320,6 +323,91 @@ async function handleJoinGame(connection, data) {
   });
 }
 
+function handleLeaveLobby(connection, data) {
+  if (!data.username) {
+    sendConnection(connection, {
+      type: "leaveLobbyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'existe pas",
+    });
+    return;
+  }
+
+  if (!data.gameId) {
+    sendConnection(connection, {
+      type: "leaveLobbyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "L'ID de la partie n'existe pas",
+    });
+    return;
+  }
+
+  // Vérifier si gameId et username corrects
+  if (!games.has(data.gameId)) {
+    sendConnection(connection, {
+      type: "leaveLobbyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le lobby n'existe pas",
+    });
+    return;
+  }
+
+  // Si oui, on récupère le joueur et la partie
+  let game = games.get(data.gameId);
+
+  if (!game) {
+    sendConnection(connection, {
+      type: "leaveLobbyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le lobby n'existe pas",
+    });
+    return;
+  }
+
+  if (!game.checkPlayerInGame(data.username)) {
+    sendConnection(connection, {
+      type: "leaveLobbyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'est pas dans la partie",
+    });
+    return;
+  }
+
+  // Si le joueur est dans un lobby, on le retire de la liste des joueurs
+  game.players = game.players.filter(
+    (player) => player.username !== data.username
+  );
+
+  // Si le lobby est maintenant vide, on supprime le lobby
+  if (game.players.length === 0) {
+    games.delete(game.id);
+  }
+
+  // On confirme au joueur ayant quitté qu'il a pu le faire
+  sendConnection(connection, {
+    type: "leaveLobbyResponse",
+    username: data.username,
+    gameId: data.gameId,
+    valid: true,
+  });
+
+  // Broadcast général pour mettre à jour le nombre de joueurs présents OU enlever le lobby qui est vide
+  sendBroadcast({
+    type: "updateLobbyInfos",
+    gameId: game.id,
+  });
+}
+
 function handlePlayerReady(connection, data) {
   // On vérifie si les données sont valides
   if (!data.username) {
@@ -465,7 +553,7 @@ async function handlePlayerMovement(connection, data) {
 function handleDisconnection(connection) {
   let disconnectedPlayerName = null;
 
-  // On récupère l'ID du joueur déconnecté
+  // On récupère le nom du joueur déconnecté
   for (const [playerName, conn] of connections.entries()) {
     if (conn === connection) {
       disconnectedPlayerName = playerName;
