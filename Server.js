@@ -543,7 +543,6 @@ async function handleRestartGame(connection, data) {
     });
     return;
   }
-  console.log("arrivé là");
 
   let gameInfos = {
     creatorName: data.username, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
@@ -575,13 +574,10 @@ async function handleRestartGame(connection, data) {
   // Pour ce faire, on récupère les IDs des joueurs de la partie terminée depuis la base de données
   for (let player of dbGame.players) {
     let conn = connections.get(player.username);
-    console.log("on essaie d'envoyer à " + player.username);
     if (!conn) {
       // Si le  joueur n'est pas connecté, on passe à l'itération suivante
       continue;
     }
-    console.log("Envoyé");
-    let dbPlayer = await playerModel.findOne({ username: data.username });
 
     sendConnection(conn, {
       type: "restartGameResponse",

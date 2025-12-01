@@ -1,10 +1,14 @@
 ## TODO
 
-- **clean code (remplacer playerId par name et gameId par la connection elle-même), homégénéiser PWC et PWS, commenter PWC**
+- **clean code (replace gameId par la connection elle-même), commenter PWC, maj com playerid->username**
+
+- revoir restart (ne pas delete mais changer en lobby)
+
+- revoir modularité de Game et Server : dans Server -> placer que switch case
+
+- bouton quitter le lobby et timeout 30s avaant d'être kick (coté serveur)
 
 - PWC : empecher envoi de requetes si on appuie sur la meme direction
-
-- fix bug reset couleur joueur qd rejouer -- fait, verif car amelioration?
 
 - PWC : mettre sur Cordova et tester
 
@@ -12,9 +16,9 @@
 
 - PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
-- PWS&PWC (très optionnel) : ajouter score -> si on fait pas, enlever score sur PWC
+- PWC (optionnel) : limiter choix couleurs
 
-- PWC (très optionnel) : limiter choix couleurs
+- PWS&PWC (très optionnel) : ajouter score -> si on fait pas, enlever score sur PWC
 
 # Déroulé des requêtes-réponses
 
