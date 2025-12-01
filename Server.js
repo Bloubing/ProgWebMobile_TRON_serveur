@@ -230,7 +230,7 @@ async function handleJoinGame(connection, data) {
 
   let game = games.get(data.gameId);
 
-  // Vérifier si le playerId de la requête existe dans la base
+  // Vérifier si le nom du joueur de la requête existe dans la base
   let player = await playerModel.findOne({ username: data.username });
 
   if (!player) {
@@ -748,12 +748,11 @@ async function endGame(game, winnerName) {
   // On parcourt game.players pour n'extraire que les propriétés à sauvegarder en base de données
   let playersData = [];
   for (let player of game.players) {
-    let currentPlayer = {
+    playersData.push({
       username: player.username,
-    };
-    playersData.push(currentPlayer);
+    });
   }
-  // On stocke la partie courante et l'ID du gagnant en base de données
+  // On stocke la partie courante et le nom du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
     name: game.name,
@@ -778,7 +777,7 @@ async function endGame(game, winnerName) {
 
     // Broadcast de fin de partie
     // On envoie l'ID du gagnant à tous les joueurs
-    // Le client affiche "Gagné" si l'ID du joueur === l'ID du gagnant, "Perdu" sinon
+    // Le client affiche "Gagné" si le nom du joueur === le nom du gagnant, "Perdu" sinon
     let connection = connections.get(player.username);
 
     if (connection) {
