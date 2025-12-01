@@ -1,14 +1,10 @@
 ## TODO
 
-- **clean code (replace gameId par la connection elle-même), commenter PWC, maj com playerid->username**
+- clean code (replace gameId par la connection elle-même), commenter PWC, maj com playerid->username
 
-- revoir restart (ne pas delete mais changer en lobby)
-
-- revoir modularité de Game et Server : dans Server -> placer que switch case
+- revoir modularité de Game et Server : dans Server -> placer que switch case, et faire un fichier gameManagements avec var games et connections
 
 - bouton quitter le lobby et timeout 30s avaant d'être kick (coté serveur)
-
-- PWC : mettre sur Cordova et tester
 
 - PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
 
@@ -340,7 +336,7 @@ Si le client souhaite relancer une partie, il envoie au serveur :
 ```
 type: "restartGame"
 username: String,
-gameId: String,
+gameId: String, // La partie qui vient de se terminer
 color: String
 ```
 

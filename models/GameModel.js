@@ -10,7 +10,6 @@ const gameSchema = new mongoose.Schema({
     {
       id: String,
       username: String,
-      color: String,
     },
   ],
   winnerName: String,

@@ -41,6 +41,7 @@ wsServer.on("request", function (request) {
         break;
       case "getLeaderboard":
         handleGetLeaderboard(connection);
+        break;
       case "getAllLobbies":
         // Un joueur met à jour les lobbies existants actuellement
         handleGetAllLobbies(connection);
@@ -57,6 +58,7 @@ wsServer.on("request", function (request) {
       case "leaveLobby":
         // Un joueur clique sur Quitter dans un lobby
         handleLeaveLobby(connection, data);
+        break;
       case "playerReady":
         // Un joueur clique sur Prêt dans un lobby
         handlePlayerReady(connection, data);
@@ -68,6 +70,7 @@ wsServer.on("request", function (request) {
       case "restartGame":
         // Un joueur clique sur Rejouer
         handleRestartGame(connection, data);
+        break;
     }
   });
 
@@ -152,14 +155,17 @@ function handleGetAllLobbies(connection) {
   gamesArray = [];
 
   for (const game of games.values()) {
-    let gameItem = {
-      gameId: game.id,
-      gameName: game.name,
-      maxPlayers: game.maxPlayers,
-      currentPlayers: game.players.length,
-    };
+    // On n'affiche les parties si ce sont des parties non vides et non terminées
+    if (game.players.length > 0 && game.status !== "gameEnded") {
+      let gameItem = {
+        gameId: game.id,
+        gameName: game.name,
+        maxPlayers: game.maxPlayers,
+        currentPlayers: game.players.length,
+      };
 
-    gamesArray.push(gameItem);
+      gamesArray.push(gameItem);
+    }
   }
 
   sendConnection(connection, {
@@ -261,8 +267,8 @@ async function handleJoinGame(connection, data) {
     return;
   }
 
-  // Le serveur vérifie que la partie n'a pas encore commencée
-  if (game.status != "lobby") {
+  // Le serveur vérifie que la partie n'a pas encore commencé ou que ce n'est pas une ancienne partie
+  if (game.status !== "lobby") {
     sendConnection(connection, {
       type: "joinGameResponse",
       username: data.username,
@@ -271,6 +277,19 @@ async function handleJoinGame(connection, data) {
       reason: "La partie a déjà commencé",
     });
     return;
+  }
+
+  // Si le joueur était dans une autre partie, on le retire de cette dernière
+  for (const gameItem of games.values()) {
+    if (gameItem.checkPlayerInGame(data.username)) {
+      gameItem.players = gameItem.players.filter(
+        (player) => player.username !== data.username
+      );
+    }
+  }
+  // On supprime l'ancienne partie si plus aucun joueur
+  if (game.players.length === 0) {
+    games.delete(game.id);
   }
 
   // Si pas d'erreur, le serveur ajoute la connexion à la partie demandée et le serveur informe
@@ -568,7 +587,7 @@ function handleDisconnection(connection) {
 
   for (const game of games.values()) {
     if (game.checkPlayerInGame(disconnectedPlayerName)) {
-      if (game.status === "lobby") {
+      if (game.status === "lobby" || game.status === "gameEnded") {
         // Si le joueur est dans un lobby, on le retire de la liste des joueurs
         game.players = game.players.filter(
           (player) => player.username !== disconnectedPlayerName
@@ -608,8 +627,58 @@ function handleDisconnection(connection) {
 }
 
 async function handleRestartGame(connection, data) {
+  // On vérifie si les données sont valides
+  if (!data.username) {
+    sendConnection(connection, {
+      type: "playerReadyResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'existe pas",
+    });
+    return;
+  }
+
+  if (!data.gameId) {
+    sendConnection(connection, {
+      type: "playerRestartResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "L'ID de la partie n'existe pas",
+    });
+    return;
+  }
+
+  let game = games.get(data.gameId);
+
+  if (!game) {
+    // Le serveur renvoie une erreur si données invalides
+    sendConnection(connection, {
+      type: "restartGameResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "La partie n'existe pas",
+    });
+    return;
+  }
+
+  if (!game.checkPlayerInGame(data.username)) {
+    // Le serveur renvoie une erreur si données invalides
+    sendConnection(connection, {
+      type: "restartGameResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'est pas dans la partie",
+    });
+
+    return;
+  }
+
   // On vérifie si la partie est terminée ou non
-  if (games.get(data.gameId)) {
+  if (game.status === "game") {
     // Si elle n'est pas encore terminée, on renvoie une erreur au joueur lui demandant d'attendre
     sendConnection(connection, {
       type: "restartGameResponse",
@@ -619,28 +688,17 @@ async function handleRestartGame(connection, data) {
     return;
   }
 
-  // Si elle est terminée, on cherche dans la BDD les informations de la partie à partir de son ID
-  // pour recréer une partie avec les mêmes propriétés
-  let dbGame = await gameModel.findOne({ generatedGameId: data.gameId });
-  if (!dbGame) {
-    // Envoyer une erreur si la partie pas dans la base de données
-    sendConnection(connection, {
-      type: "restartGameResponse",
-      valid: false,
-      reason: "La partie n'a pas été trouvée",
-    });
-    return;
-  }
+  // Si elle est terminée, on récupère la partie venant de se terminer pour créer une nouvelle partie
+  // avec les mêmes propriétés
 
   let gameInfos = {
     creatorName: data.username, // Le premier à appuyer sur Rejouer devient le créateur de la nouvelle partie
-    gameName: dbGame.name,
-    maxPlayers: dbGame.players.length,
+    gameName: game.name,
+    maxPlayers: game.maxPlayers,
     //M : Couleur : on privilégie celle envoyée par le client, sinon on réutilise celle de la partie terminée
     color:
       data.color ||
-      dbGame.players.find((player) => player.username === data.username)
-        ?.color ||
+      game.players.find((player) => player.username === data.username)?.color ||
       "#00ffff", // La couleur du joueur ayant cliqué sur Rejouer
   };
 
@@ -660,11 +718,21 @@ async function handleRestartGame(connection, data) {
   // pour leur demander s'ils veulent la rejoindre
 
   // Pour ce faire, on récupère les IDs des joueurs de la partie terminée depuis la base de données
-  for (let player of dbGame.players) {
+  for (let player of game.players) {
     let conn = connections.get(player.username);
     if (!conn) {
       // Si le  joueur n'est pas connecté, on passe à l'itération suivante
       continue;
+    }
+
+    // On retire le joueur demandant de rejouer de l'ancienne partie
+    game.players = game.players.filter(
+      (player) => player.username !== data.username
+    );
+
+    // On supprime l'ancienne partie si plus aucun joueur
+    if (game.players.length === 0) {
+      games.delete(game.id);
     }
 
     sendConnection(conn, {
@@ -682,11 +750,9 @@ async function endGame(game, winnerName) {
   for (let player of game.players) {
     let currentPlayer = {
       username: player.username,
-      color: player.color,
     };
     playersData.push(currentPlayer);
   }
-  console.log("playerData : " + playersData);
   // On stocke la partie courante et l'ID du gagnant en base de données
   await gameModel.create({
     generatedGameId: game.id,
@@ -723,9 +789,6 @@ async function endGame(game, winnerName) {
       });
     }
   }
-
-  // On enlève la partie de la liste des parties en cours
-  games.delete(game.id);
 }
 
 // Fonctions utilitaires

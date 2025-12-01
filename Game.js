@@ -48,7 +48,7 @@ class Game {
     this.interval = setInterval(() => {
       this.update();
       updateAllPlayerMovements(game);
-    }, 1000);
+    }, 100);
   }
 
   stop() {
@@ -56,6 +56,12 @@ class Game {
     if (this.interval) {
       clearInterval(this.interval);
     }
+    this.status = "gameEnded";
+
+    // On nettoie la grille de jeu
+    this.grid = Array.from({ length: this.size }, () =>
+      Array(this.size).fill(null)
+    );
   }
 
   update() {
