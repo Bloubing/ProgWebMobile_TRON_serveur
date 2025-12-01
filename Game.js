@@ -2,13 +2,7 @@ const crypto = require("crypto");
 const Player = require("./Player");
 
 class Game {
-  constructor(
-    creatorName,
-    name,
-    maxPlayers,
-    endGame,
-    creatorColor = "#00ffff"
-  ) {
+  constructor(creatorName, name, maxPlayers, creatorColor = "#00ffff") {
     // ID unique pour la game
     this.id = crypto.randomUUID();
     this.name = name;
@@ -33,11 +27,9 @@ class Game {
     ];
     this.startedAt = Date.now();
     this.interval = null;
-    // Permet d'utiliser la fonction endGame dans Server.js
-    this.endGame = endGame;
   }
 
-  start(updateAllPlayerMovements, game) {
+  start(updateAllPlayerMovements, endGame, game) {
     if (this.interval) {
       // On empêche le lancement d'une autre intervalle si une déjà existante
       return;
@@ -46,7 +38,7 @@ class Game {
     this.status = "game";
     // Lancer un intervalle de updateAllPlayerMovements
     this.interval = setInterval(() => {
-      this.update();
+      this.update(endGame);
       updateAllPlayerMovements(game);
     }, 100);
   }
@@ -64,7 +56,7 @@ class Game {
     );
   }
 
-  update() {
+  update(endGame) {
     for (const player of this.players) {
       // On ne met pas à jour si le joueur est mort
       if (!player.alive) continue;
@@ -87,7 +79,7 @@ class Game {
     // pour gérer les cas où des joueurs meurent en même temps
     if (this.getAliveCount() <= 1) {
       let winner = this.getWinner();
-      this.endGame(this, winner.username);
+      endGame(this, winner.username);
       return;
     }
   }

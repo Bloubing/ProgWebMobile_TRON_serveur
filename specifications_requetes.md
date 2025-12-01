@@ -1,7 +1,5 @@
 ## TODO
 
-- revoir modularité de Game et Server : dans Server -> placer que switch case, et faire un fichier gameManagements avec var games et connections
-
 - clean code (replace gameId par la connection elle-même), commenter PWC
 
 - bouton quitter le lobby et timeout 30s avaant d'être kick (coté serveur)
