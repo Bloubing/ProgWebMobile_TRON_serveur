@@ -8,8 +8,6 @@
 
 - bouton quitter le lobby et timeout 30s avaant d'être kick (coté serveur)
 
-- PWC : empecher envoi de requetes si on appuie sur la meme direction
-
 - PWC : mettre sur Cordova et tester
 
 - PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
