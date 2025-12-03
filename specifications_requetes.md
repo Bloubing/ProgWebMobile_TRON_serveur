@@ -1,10 +1,8 @@
 ## TODO
 
-- tester sur Android et sur le même réseau (mettre onDeviceReady sur cordova)
+- tester sur Android et sur le même réseau
 
-- **bouton quitter le lobby et timeout 30s avant d'être kick (coté serveur)**
-
-Quand qqn rejoint une partie, un timer de 30s se lance pour cette personne. Il s'arrête quand la personne met Prêt. Au bout de 30s, si la personne n'a pas envoyé Prêt, elle est kick
+- **bouton quitter le lobby**
 
 - clean code, commenter PWC
 
