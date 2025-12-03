@@ -3,7 +3,7 @@ const http = require("http");
 const WebSocketServer = require("websocket").server;
 
 const server = http.createServer();
-server.listen(9898);
+server.listen(9898, "0.0.0.0");
 
 const wsServer = new WebSocketServer({
   httpServer: server,

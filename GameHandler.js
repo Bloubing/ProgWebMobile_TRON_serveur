@@ -168,6 +168,10 @@ function handleCreateGame(connection, data) {
   // On ajoute la partie à la liste des parties en cours
   games.set(game.id, game);
 
+  let creator = game.getPlayer(data.creatorName);
+
+  startCountdownBeforeKick(connection, game, creator);
+
   // Broadcast général pour informer les joueurs de la création d'un nouveau lobby
   // Les joueurs n'ont pas à rafraîchir leur page pour voir le nouveau lobby s'afficher
   sendBroadcast({
@@ -250,18 +254,34 @@ async function handleJoinGame(connection, data) {
         (player) => player.username !== data.username
       );
     }
-  }
-  // On supprime l'ancienne partie si plus aucun joueur
-  if (game.players.length === 0) {
-    games.delete(game.id);
+    // On supprime l'ancienne partie si plus aucun joueur
+    if (game.players.length === 0) {
+      games.delete(game.id);
+    }
   }
 
   // Si pas d'erreur, le serveur ajoute la connexion à la partie demandée et le serveur informe
   // tous les clients de l'arrivée du nouveau joueur
   let newPlayerInGame;
 
-  // Le premier joueur est placé à la création d'une partie (cf. Game)
-  if (game.players.length === 1) {
+  // Vérifier si la position créateur est libre car expulsé ou parti
+  const creatorStillPresent = game.players.some(
+    (p) => p.x === 0 && p.y === Math.floor(game.size / 2)
+  );
+
+  // Si le joueur créateur n'est plus là, on place le nouveau joueur rejoignant à sa place
+  if (!creatorStillPresent) {
+    // Le nouveau joueur devient le premier joueur
+    newPlayerInGame = new Player(
+      data.username,
+      0,
+      Math.floor(game.size / 2),
+      "right",
+      data.color
+    );
+  } else if (game.players.length === 1) {
+    // Le créateur est présent (et placé à la création d'une partie, cf. Game)
+
     // 2e joueur apparaît à droite
     newPlayerInGame = new Player(
       data.username,
@@ -271,7 +291,7 @@ async function handleJoinGame(connection, data) {
       data.color
     );
   } else if (game.players.length === 2) {
-    // 3e joueur apparaît en bas
+    // Le créateur est présent et le 3e joueur apparaît en bas
     newPlayerInGame = new Player(
       data.username,
       Math.floor(game.size / 2),
@@ -280,7 +300,7 @@ async function handleJoinGame(connection, data) {
       data.color
     );
   } else if (game.players.length === 3) {
-    // 4e joueur apparaît en haut
+    // Le créateur est présent et le 4e joueur apparaît en haut
     newPlayerInGame = new Player(
       data.username,
       Math.floor(game.size / 2),
@@ -289,7 +309,11 @@ async function handleJoinGame(connection, data) {
       data.color
     );
   }
+
   game.players.push(newPlayerInGame);
+
+  // On commence un countdown pour le joueur ayant rejoint
+  startCountdownBeforeKick(connection, game, newPlayerInGame);
 
   // Broadcast général pour mettre à jour le nombre de joueurs présents dans le lobby courant
   sendBroadcast({
@@ -670,6 +694,42 @@ function handleDisconnection(connection) {
       return;
     }
   }
+}
+
+function startCountdownBeforeKick(connection, game, player) {
+  let count = 5;
+  let timeCountMs = 1000;
+
+  const countInterval = setInterval(() => {
+    count -= 1;
+    if (count < 0) {
+      clearInterval(countInterval);
+      // Si au bout de 30 secondes, le joueur n'est pas prêt, on le kick
+      if (!player.ready) {
+        // Si le joueur est dans un lobby, on le retire de la liste des joueurs
+        game.players = game.players.filter(
+          (p) => p.username !== player.username
+        );
+
+        // Si le lobby est maintenant vide, on supprime le lobby
+        if (game.players.length === 0) {
+          games.delete(game.id);
+        }
+
+        // A la fin du compte, le serveur informe les joueurs de la partie qu'elle commence
+        sendConnection(connection, {
+          type: "kickPlayer",
+          gameId: game.id,
+        });
+
+        // Broadcast général pour mettre à jour le nombre de joueurs présents dans le lobby courant
+        sendBroadcast({
+          type: "updateLobbyInfos",
+          gameId: game.id,
+        });
+      }
+    }
+  }, timeCountMs);
 }
 
 // === Fonctions supports sur l'état de la partie ===

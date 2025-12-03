@@ -1,18 +1,16 @@
 ## TODO
 
-- clean code (replace gameId par la connection elle-même), commenter PWC
+- tester sur Android et sur le même réseau (mettre onDeviceReady sur cordova)
 
-- bouton quitter le lobby et timeout 30s avaant d'être kick (coté serveur)
+- **bouton quitter le lobby et timeout 30s avant d'être kick (coté serveur)**
 
-- tester sur Android et sur le même réseau
+Quand qqn rejoint une partie, un timer de 30s se lance pour cette personne. Il s'arrête quand la personne met Prêt. Au bout de 30s, si la personne n'a pas envoyé Prêt, elle est kick
 
-- PWS (optionnel): implémenter code spécifique au lobby : réapparition joueurs, non comptabilisation des scores
+- clean code, commenter PWC
+
+- finalisation : enlever tous les console.log
 
 - PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
-
-- PWC (optionnel) : limiter choix couleurs
-
-- PWS&PWC (très optionnel) : ajouter score -> si on fait pas, enlever score sur PWC
 
 # Déroulé des requêtes-réponses
 
@@ -266,6 +264,17 @@ type : "gameStart",
 gameId : String,
 }
 
+```
+
+### Expulsion du joueur
+
+Si le client ne met pas prêt avant 30 secondes, il est éjecté de la partie. Le serveur envoie au client éjecté, le message suivant :
+
+```
+{
+  type: "kickPlayer",
+  gameId: String,
+}
 ```
 
 ## Game en cours
