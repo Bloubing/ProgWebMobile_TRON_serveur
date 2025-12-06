@@ -1,14 +1,9 @@
 ## TODO
 
-- tester sur Android et sur le même réseau
-
-- **bouton quitter le lobby**
-
-- clean code, commenter PWC
+- faire des tests pour voir si bugs
+  => bug prêt qd on recrée une game avec meme nom, bug expulsion
 
 - finalisation : enlever tous les console.log
-
-- PWS (optionnel) : optimiser le broadcast aux joueurs connectés : envoyer qu'à ceux qui ne sont pas dans une game
 
 # Déroulé des requêtes-réponses
 

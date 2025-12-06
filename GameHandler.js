@@ -797,7 +797,7 @@ async function endGame(game, winnerName) {
     // Mise à jour du nombre de victoires de chaque joueur de la partie
 
     // +1 victoire si le joueur === gagnant, sinon +1 défaite
-    await playerModel.updateOne(
+    playerModel.updateOne(
       { username: player.username },
       winnerName === player.username
         ? { $inc: { wins: 1 } }
