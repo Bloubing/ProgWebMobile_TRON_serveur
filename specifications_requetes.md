@@ -1,9 +1,12 @@
 ## TODO
 
-- faire des tests pour voir si bugs
-  => bug prêt qd on recrée une game avec meme nom, bug expulsion
+**- faire rapport**
 
 - finalisation : enlever tous les console.log
+
+- faire readme
+
+- faire slides
 
 # Déroulé des requêtes-réponses
 

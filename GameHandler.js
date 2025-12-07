@@ -697,15 +697,15 @@ function handleDisconnection(connection) {
 }
 
 function startCountdownBeforeKick(connection, game, player) {
-  let count = 30;
+  let count = 5;
   let timeCountMs = 1000;
 
   const countInterval = setInterval(() => {
     count -= 1;
     if (count < 0) {
       clearInterval(countInterval);
-      // Si au bout de 30 secondes, le joueur n'est pas prêt, on le kick
-      if (!player.ready) {
+      // Si au bout de 30 secondes, le joueur n'est pas prêt et qu'il est encore dans la partie, on le kick
+      if (!player.ready && game.checkPlayerInGame(player.username)) {
         // Si le joueur est dans un lobby, on le retire de la liste des joueurs
         game.players = game.players.filter(
           (p) => p.username !== player.username
