@@ -697,7 +697,7 @@ function handleDisconnection(connection) {
 }
 
 function startCountdownBeforeKick(connection, game, player) {
-  let count = 5;
+  let count = 30;
   let timeCountMs = 1000;
 
   const countInterval = setInterval(() => {
