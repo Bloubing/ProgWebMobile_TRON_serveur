@@ -4,7 +4,7 @@
 
 - finalisation : enlever console.log
 
-- faire readme
+- faire readme -- VERIFIER SI OK
 
 - faire slides
 
