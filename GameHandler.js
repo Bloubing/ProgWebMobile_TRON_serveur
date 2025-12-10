@@ -777,9 +777,7 @@ async function endGame(game, winnerName) {
   // On parcourt game.players pour n'extraire que les propriétés à sauvegarder en base de données
   let playersData = [];
   for (let player of game.players) {
-    playersData.push({
-      username: player.username,
-    });
+    playersData.push(player.username);
   }
   // On stocke la partie courante et le nom du gagnant en base de données
   await gameModel.create({

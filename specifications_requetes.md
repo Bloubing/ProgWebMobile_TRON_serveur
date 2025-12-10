@@ -2,7 +2,7 @@
 
 **- faire rapport**
 
-- finalisation : enlever tous les console.log
+- finalisation : enlever console.log
 
 - faire readme
 
