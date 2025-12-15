@@ -1,5 +1,3 @@
-**-update spécification requetes :couleur, remove couleur dans createGame et joinGame**
-
 # Déroulé des paquets
 
 ## Connexion du joueur
