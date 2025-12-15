@@ -1,12 +1,12 @@
 class Player {
-  constructor(username, x, y, currentDirection, color = "#00ffff") {
+  constructor(username, x, y, currentDirection) {
     this.username = username;
     this.x = x;
     this.y = y;
     this.ready = false;
     this.alive = true;
     this.currentDirection = currentDirection;
-    this.color = color;
+    this.color = null;
   }
 
   //M : ajout setColor pour changer la couleur du joueur
@@ -27,6 +27,26 @@ class Player {
     }
 
     this.currentDirection = direction;
+  }
+
+  getNextPosition() {
+    let nextX = this.x;
+    let nextY = this.y;
+    switch (this.currentDirection) {
+      case "up":
+        nextY -= 1;
+        break;
+      case "down":
+        nextY += 1;
+        break;
+      case "left":
+        nextX -= 1;
+        break;
+      case "right":
+        nextX += 1;
+        break;
+    }
+    return { x: nextX, y: nextY };
   }
 
   move() {

@@ -161,8 +161,7 @@ function handleCreateGame(connection, data) {
   const game = new Game(
     data.creatorName,
     data.gameName,
-    Number(data.maxPlayers),
-    data.color
+    Number(data.maxPlayers)
   );
 
   // On ajoute la partie à la liste des parties en cours
@@ -179,6 +178,16 @@ function handleCreateGame(connection, data) {
     gameId: game.id,
     creatorName: data.creatorName,
     valid: true,
+  });
+
+  // Envoyer au créateur les couleurs prises (la sienne pour l'instant)
+  sendConnection(connection, {
+    type: "updateColor",
+    gameId: game.id,
+    colorsTaken: game.players.map((p) => ({
+      username: p.username,
+      color: p.color,
+    })),
   });
 
   return game.id;
@@ -276,8 +285,7 @@ async function handleJoinGame(connection, data) {
       data.username,
       0,
       Math.floor(game.size / 2),
-      "right",
-      data.color
+      "right"
     );
   } else if (game.players.length === 1) {
     // Le créateur est présent (et placé à la création d'une partie, cf. Game)
@@ -287,8 +295,7 @@ async function handleJoinGame(connection, data) {
       data.username,
       game.size - 1,
       Math.floor(game.size / 2),
-      "left",
-      data.color
+      "left"
     );
   } else if (game.players.length === 2) {
     // Le créateur est présent et le 3e joueur apparaît en bas
@@ -296,8 +303,7 @@ async function handleJoinGame(connection, data) {
       data.username,
       Math.floor(game.size / 2),
       game.size - 1,
-      "up",
-      data.color
+      "up"
     );
   } else if (game.players.length === 3) {
     // Le créateur est présent et le 4e joueur apparaît en haut
@@ -305,12 +311,32 @@ async function handleJoinGame(connection, data) {
       data.username,
       Math.floor(game.size / 2),
       0,
-      "down",
-      data.color
+      "down"
     );
   }
 
+  // Couleur déjà prise, choisir une couleur disponible automatiquement
+  const availableColors = ["#00ffff", "#ff00ff", "#00ff00", "#ffff00"];
+  const takenColors = game.players.map((p) => p.color).filter(Boolean);
+  const freeColor = availableColors.find((c) => !takenColors.includes(c));
+
+  if (!freeColor) {
+    sendConnection(connection, {
+      type: "joinGameResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Aucune couleur n'est disponible",
+    });
+    return;
+  }
+
+  newPlayerInGame.setColor(freeColor);
+
   game.players.push(newPlayerInGame);
+
+  // Enregistrer la couleur dans usedColors
+  game.usedColors[data.username] = newPlayerInGame.color;
 
   // On commence un countdown pour le joueur ayant rejoint
   startCountdownBeforeKick(connection, game, newPlayerInGame);
@@ -327,6 +353,16 @@ async function handleJoinGame(connection, data) {
     newPlayerUsername: player.username,
     gameId: data.gameId,
     valid: true,
+  });
+
+  // Envoyer les couleurs prises à tous les joueurs
+  sendPlayersInGame(game, {
+    type: "updateColor",
+    gameId: game.id,
+    colorsTaken: game.players.map((p) => ({
+      username: p.username,
+      color: p.color,
+    })),
   });
 }
 
@@ -368,17 +404,6 @@ function handleLeaveLobby(connection, data) {
   // Si oui, on récupère le joueur et la partie
   let game = games.get(data.gameId);
 
-  if (!game) {
-    sendConnection(connection, {
-      type: "leaveLobbyResponse",
-      username: data.username,
-      gameId: data.gameId,
-      valid: false,
-      reason: "Le lobby n'existe pas",
-    });
-    return;
-  }
-
   if (!game.checkPlayerInGame(data.username)) {
     sendConnection(connection, {
       type: "leaveLobbyResponse",
@@ -398,6 +423,18 @@ function handleLeaveLobby(connection, data) {
   // Si le lobby est maintenant vide, on supprime le lobby
   if (game.players.length === 0) {
     games.delete(game.id);
+  } else {
+    // Si le lobby n'est pas vide, on met à jour l'état des couleurs
+    delete game.usedColors[data.username];
+
+    sendPlayersInGame(game, {
+      type: "updateColor",
+      gameId: game.id,
+      colorsTaken: game.players.map((p) => ({
+        username: p.username,
+        color: p.color,
+      })),
+    });
   }
 
   // On confirme au joueur ayant quitté qu'il a pu le faire
@@ -412,6 +449,155 @@ function handleLeaveLobby(connection, data) {
   sendBroadcast({
     type: "updateLobbyInfos",
     gameId: game.id,
+  });
+}
+
+function handleChangeColor(connection, data) {
+  if (!data.username) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'existe pas",
+    });
+    return;
+  }
+
+  if (!data.gameId) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "L'ID de la partie n'existe pas",
+    });
+    return;
+  }
+
+  if (!data.color) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "La couleur n'existe pas",
+    });
+    return;
+  }
+
+  if (!games.has(data.gameId)) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le lobby n'existe pas",
+    });
+    return;
+  }
+
+  const game = games.get(data.gameId);
+
+  if (!game.checkPlayerInGame(data.username)) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'est pas dans la partie",
+    });
+    return;
+  }
+
+  // On vérifie si la partie est terminée ou non
+  // Pour empecher le joueur de changer de couleur en pleine partie
+  if (game.status === "game") {
+    // Si elle n'est pas encore terminée, on renvoie une erreur au joueur
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Impossible de changer de couleur pendant la partie",
+    });
+    return;
+  }
+
+  // Vérifie que le joueur est bien dans la partie
+  const player = game.getPlayer(data.username);
+
+  if (!player) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Le joueur n'existe pas dans la base de données",
+    });
+    return;
+  }
+  // Le joueur souhaite changer de couleur mais il est déjà prêt : on refuse
+  if (player.ready) {
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: "Impossible de changer de couleur en étant Prêt !",
+    });
+    return;
+  }
+
+  // Utiliser la méthode de Game pour changer la couleur
+  const success = game.setPlayerColor(data.username, data.color);
+
+  if (!success) {
+    // Couleur déjà prise, envoyer un message d'erreur au joueur
+    const takenBy = Object.entries(game.usedColors).find(
+      ([playerName, c]) => c === data.color && playerName !== data.username
+    );
+
+    sendConnection(connection, {
+      type: "changeColorResponse",
+      username: data.username,
+      gameId: data.gameId,
+      valid: false,
+      reason: takenBy
+        ? `Couleur déjà prise par ${takenBy.username}`
+        : "Couleur non disponible",
+    });
+
+    // Renvoyer aussi l'état actuel pour resynchroniser
+
+    sendPlayersInGame(game, {
+      type: "updateColor",
+      gameId: game.id,
+      colorsTaken: game.players.map((p) => ({
+        username: p.username,
+        color: p.color,
+      })),
+    });
+    return;
+  }
+
+  // Le choix a été validé avec succès
+  sendConnection(connection, {
+    type: "changeColorResponse",
+    username: data.username,
+    gameId: game.id,
+    valid: true,
+  });
+
+  // Broadcast des couleurs prises à tous les joueurs du lobby
+  sendPlayersInGame(game, {
+    type: "updateColor",
+    gameId: game.id,
+    // Tableau des joueurs avec nom et couleur
+    colorsTaken: game.players.map((p) => ({
+      username: p.username,
+      color: p.color,
+    })),
   });
 }
 
@@ -593,8 +779,7 @@ async function handleRestartGame(connection, data) {
     //M : Couleur : on privilégie celle envoyée par le client, sinon on réutilise celle de la partie terminée
     color:
       data.color ||
-      game.players.find((player) => player.username === data.username)?.color ||
-      "#00ffff", // La couleur du joueur ayant cliqué sur Rejouer
+      game.players.find((player) => player.username === data.username)?.color,
   };
 
   // On délègue à la fonction qui va créer une partie si les informations sont correctes
@@ -636,6 +821,17 @@ async function handleRestartGame(connection, data) {
       restartName: data.username,
       valid: true,
     });
+
+    // Envoyer au créateur les couleurs prises (la sienne pour l'instant)
+
+    sendConnection(connection, {
+      type: "updateColor",
+      gameId: game.id,
+      colorsTaken: game.players.map((p) => ({
+        username: p.username,
+        color: p.color,
+      })),
+    });
   }
 }
 
@@ -666,6 +862,18 @@ function handleDisconnection(connection) {
         // Si le lobby est maintenant vide, on supprime le lobby
         if (game.players.length === 0) {
           games.delete(game.id);
+        } else {
+          // Si le lobby n'est pas vide, on met à jour l'état des couleurs
+          delete game.usedColors[disconnectedPlayerName];
+
+          sendPlayersInGame(game, {
+            type: "updateColor",
+            gameId: game.id,
+            colorsTaken: game.players.map((p) => ({
+              username: p.username,
+              color: p.color,
+            })),
+          });
         }
 
         // Broadcast général pour mettre à jour le nombre de joueurs présents OU enlever le lobby qui est vide
@@ -714,6 +922,18 @@ function startCountdownBeforeKick(connection, game, player) {
         // Si le lobby est maintenant vide, on supprime le lobby
         if (game.players.length === 0) {
           games.delete(game.id);
+        } else {
+          // Si le lobby n'est pas vide, on met à jour l'état des couleurs
+          delete game.usedColors[player.username];
+
+          sendPlayersInGame(game, {
+            type: "updateColor",
+            gameId: game.id,
+            colorsTaken: game.players.map((p) => ({
+              username: p.username,
+              color: p.color,
+            })),
+          });
         }
 
         // A la fin du compte, le serveur informe les joueurs de la partie qu'elle commence
@@ -795,7 +1015,7 @@ async function endGame(game, winnerName) {
     // Mise à jour du nombre de victoires de chaque joueur de la partie
 
     // +1 victoire si le joueur === gagnant, sinon +1 défaite
-    playerModel.updateOne(
+    await playerModel.updateOne(
       { username: player.username },
       winnerName === player.username
         ? { $inc: { wins: 1 } }
@@ -825,6 +1045,7 @@ module.exports = {
   handleJoinGame,
   handleLeaveLobby,
   handlePlayerReady,
+  handleChangeColor,
   handlePlayerMovement,
   handleRestartGame,
   handleDisconnection,

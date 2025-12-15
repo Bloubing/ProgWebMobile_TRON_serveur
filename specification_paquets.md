@@ -1,14 +1,6 @@
-## TODO
+**-update spécification requetes :couleur, remove couleur dans createGame et joinGame**
 
-**- faire rapport**
-
-- finalisation : enlever console.log
-
-- faire readme
-
-- faire slides
-
-# Déroulé des requêtes-réponses
+# Déroulé des paquets
 
 ## Connexion du joueur
 
@@ -113,7 +105,6 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
   maxPlayers : Number, // entre 2 et 4
   creatorName : String,
   gameName : String,
-  color: String, // couleur du joueur
 }
 ```
 
@@ -164,8 +155,7 @@ Le serveur fait une requête à la base de données pour obtenir les 5 joueurs a
 {
 type : "joinGame",
 username : String,
-gameToJoinId : String,
-color: String,
+gameId : String,
 }
 
 ```
@@ -199,9 +189,61 @@ valid: true,
 
 ```
 
+### Choix de la couleur
+
+- Quand le joueur clique sur une couleur, cela envoie au serveur :
+
+```
+{
+  type: "changeColor",
+  username: String,
+  color: String,
+  gameId: String,
+}
+```
+
+- S'il y a une erreur après cette action, le serveur envoie au client :
+
+```
+{
+  type: "changeColorResponse",
+  username: String,
+  gameId: String,
+  valid: false,
+  reason: String,
+}
+```
+
+- S'il n'y a pas d'erreur, le serveur envoie :
+
+```
+{
+  type: "changeColorResponse",
+  username: String,
+  gameId: String,
+  valid: true,
+}
+```
+
+- Le serveur informe ensuite les autres joueurs de la partie du choix de couleur du joueur :
+
+```
+{
+    type: "updateColor",
+    gameId: String,
+    colorsTaken: [Player],
+}
+
+// Player
+{
+username : String,
+color: String,
+}
+```
+
 ### Cliquer sur "Ready"
 
-- Quand le joueur clique sur "Ready", cela envoie au serveur:
+- Quand le joueur clique sur "Ready", cela envoie au serveur :
 
 ```
 

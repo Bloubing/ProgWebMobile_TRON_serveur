@@ -18,7 +18,7 @@ wsServer.on("request", function (request) {
   connection.on("message", function (message) {
     let data = JSON.parse(message.utf8Data);
 
-    console.log(data);
+    // console.log(data);
 
     switch (data.type) {
       case "connectionPlayer":
@@ -44,6 +44,10 @@ wsServer.on("request", function (request) {
       case "leaveLobby":
         // Un joueur clique sur Quitter dans un lobby
         gameHandler.handleLeaveLobby(connection, data);
+        break;
+      case "changeColor":
+        // Un joueur change de couleur
+        gameHandler.handleChangeColor(connection, data);
         break;
       case "playerReady":
         // Un joueur clique sur Prêt dans un lobby
