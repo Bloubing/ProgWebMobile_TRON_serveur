@@ -909,8 +909,15 @@ function startCountdownBeforeKick(connection, game, player) {
 
   const countInterval = setInterval(() => {
     count -= 1;
+
+    // Si le joueur est prêt ou s'il n'est plus dans la partie on arrête le compte à rebours
+    if (player.ready || !game.checkPlayerInGame(player.username)) {
+      clearInterval(countInterval);
+    }
+
     if (count < 0) {
       clearInterval(countInterval);
+
       // Si au bout de 30 secondes, le joueur n'est pas prêt et qu'il est encore dans la partie, on le kick
       if (!player.ready && game.checkPlayerInGame(player.username)) {
         // Si le joueur est dans un lobby, on le retire de la liste des joueurs
