@@ -711,7 +711,7 @@ async function handleRestartGame(connection, data) {
   // On vérifie si les données sont valides
   if (!data.username) {
     sendConnection(connection, {
-      type: "playerReadyResponse",
+      type: "restartGameResponse",
       username: data.username,
       gameId: data.gameId,
       valid: false,
@@ -722,7 +722,7 @@ async function handleRestartGame(connection, data) {
 
   if (!data.gameId) {
     sendConnection(connection, {
-      type: "playerRestartResponse",
+      type: "restartGameResponse",
       username: data.username,
       gameId: data.gameId,
       valid: false,
@@ -822,9 +822,8 @@ async function handleRestartGame(connection, data) {
       valid: true,
     });
 
-    // Envoyer au créateur les couleurs prises (la sienne pour l'instant)
-
-    sendConnection(connection, {
+    // Envoyer aux joueurs de la partie terminée les mises à jour de couleur :  créateur qui s'en va
+    sendPlayersInGame(game, {
       type: "updateColor",
       gameId: game.id,
       colorsTaken: game.players.map((p) => ({
